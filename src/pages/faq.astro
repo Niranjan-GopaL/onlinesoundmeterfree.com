@@ -1,0 +1,33 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+import FaqList from "../components/FaqList.astro";
+import { FAQ_ITEMS } from "../data/reference";
+
+const title = "Sound Meter FAQ — Accuracy, Privacy & Decibels Explained";
+const description =
+  "Answers to common questions about online sound meters: how accurate they are, dBA vs dBC, what LAeq means, calibration, privacy, and which noise levels are dangerous.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<Layout title={title} description={description} path="/faq/" jsonLd={jsonLd}>
+  <Section
+    as="h1"
+    eyebrow="FAQ"
+    title="Frequently asked questions"
+    intro="Everything about measuring sound in the browser — accuracy, weightings, privacy and safe levels."
+  >
+    <div class="mt-10">
+      <FaqList />
+    </div>
+  </Section>
+</Layout>

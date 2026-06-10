@@ -1,0 +1,33 @@
+---
+import { FAQ_ITEMS } from "../data/reference";
+
+interface Props {
+  limit?: number;
+}
+const { limit } = Astro.props;
+const items = limit ? FAQ_ITEMS.slice(0, limit) : FAQ_ITEMS;
+---
+
+<div class="mx-auto max-w-3xl divide-y divide-hairline">
+  {
+    items.map((item) => (
+      <details class="group py-1">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-left">
+          <span class="text-base font-medium text-ink">{item.q}</span>
+          <svg
+            class="h-5 w-5 shrink-0 text-ink-subtle transition-transform group-open:rotate-45"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </summary>
+        <p class="pb-5 pr-8 text-sm leading-relaxed text-ink-muted">{item.a}</p>
+      </details>
+    ))
+  }
+</div>

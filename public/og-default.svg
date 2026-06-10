@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2fb866"/>
+      <stop offset="0.5" stop-color="#e3b341"/>
+      <stop offset="1" stop-color="#f06a5d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#010102"/>
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="#23252a"/>
+
+  <!-- Brand -->
+  <g transform="translate(80,72)">
+    <rect width="44" height="44" rx="10" fill="#5e6ad2"/>
+    <path d="M9 22h4l4.5-12L25 35l4.5-13H35" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="60" y="30" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="600" fill="#f7f8f8">Online<tspan fill="#8a8f98">SoundMeter</tspan></text>
+  </g>
+
+  <!-- Headline -->
+  <text x="80" y="320" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="600" letter-spacing="-2.5" fill="#f7f8f8">Free online</text>
+  <text x="80" y="404" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="600" letter-spacing="-2.5" fill="#f7f8f8">sound level meter</text>
+  <text x="80" y="470" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="400" fill="#d0d6e0">dBA · LAeq · A/C/Z weighting · 100% private, in your browser</text>
+
+  <!-- Gauge motif -->
+  <g transform="translate(960,300)">
+    <path d="M -150 106 A 184 184 0 1 1 150 106" fill="none" stroke="#23252a" stroke-width="26" stroke-linecap="round"/>
+    <path d="M -150 106 A 184 184 0 0 1 70 -170" fill="none" stroke="url(#arc)" stroke-width="26" stroke-linecap="round"/>
+    <text x="0" y="20" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="92" font-weight="600" fill="#f7f8f8">72</text>
+    <text x="0" y="64" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="24" fill="#8a8f98">dBA</text>
+  </g>
+</svg>

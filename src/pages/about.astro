@@ -1,0 +1,64 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+
+const title = "About Online Sound Meter";
+const description =
+  "About the Online Sound Meter — a free, private, browser-based sound level meter, our measurement methodology, and the authoritative sources behind our guidance.";
+---
+
+<Layout title={title} description={description} path="/about/">
+  <Section as="h1" eyebrow="About" title="A better free sound meter">
+    <div class="mt-6 max-w-2xl space-y-5 text-base leading-relaxed text-ink-muted">
+      <p>
+        Online Sound Meter is a free tool for measuring environmental noise in
+        decibels, built for teachers, parents, musicians, office workers and
+        anyone curious about the sound around them. It runs entirely in your
+        browser, works on any device, and never records or uploads your audio.
+      </p>
+      <p>
+        Most free meters online show a single number with little context. We
+        wanted something more useful and more honest — real measurement metrics
+        (A/C/Z weighting, Fast/Slow response, LAeq), clear explanations of what
+        the numbers mean, and a frank account of the limits of consumer
+        hardware.
+      </p>
+    </div>
+
+    <h2 id="methodology" class="display-tight mt-12 scroll-mt-20 text-2xl text-ink">
+      Methodology
+    </h2>
+    <div class="mt-6 max-w-2xl space-y-5 text-base leading-relaxed text-ink-muted">
+      <p>
+        Sound is captured with the Web Audio API and analysed with a 4096-point
+        FFT. We compute RMS amplitude, convert to decibels, apply IEC 61672
+        frequency weightings and exponential time-weightings, and derive the
+        equivalent continuous level (LAeq) from sound energy. The full pipeline
+        is described on our
+        <a class="text-primary hover:underline" href="/how-it-works/"
+          >how it works</a
+        > page, and its limits on the
+        <a class="text-primary hover:underline" href="/accuracy/">accuracy</a> page.
+      </p>
+    </div>
+
+    <h2 class="display-tight mt-12 text-2xl text-ink">Sources</h2>
+    <ul class="mt-6 max-w-2xl space-y-3 text-sm text-ink-muted">
+      <li>
+        <a class="text-ink underline hover:text-primary" href="https://www.cdc.gov/niosh/topics/noise/" rel="nofollow noopener" target="_blank"
+          >NIOSH — Occupational Noise Exposure</a
+        > · recommended exposure limits and the 3 dB exchange rate.
+      </li>
+      <li>
+        <a class="text-ink underline hover:text-primary" href="https://www.who.int/news-room/fact-sheets/detail/deafness-and-hearing-loss" rel="nofollow noopener" target="_blank"
+          >WHO — Deafness and hearing loss</a
+        > · environmental and recreational noise guidance.
+      </li>
+      <li>
+        <a class="text-ink underline hover:text-primary" href="https://www.nidcd.nih.gov/health/noise-induced-hearing-loss" rel="nofollow noopener" target="_blank"
+          >NIDCD — Noise-Induced Hearing Loss</a
+        > · how loud sounds damage hearing.
+      </li>
+    </ul>
+  </Section>
+</Layout>

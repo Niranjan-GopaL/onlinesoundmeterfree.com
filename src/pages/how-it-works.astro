@@ -1,0 +1,76 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+
+const title = "How the Online Sound Meter Works";
+const description =
+  "A look under the hood: how the browser measures sound with the Web Audio API, computes RMS and decibels, applies A/C/Z weighting and Fast/Slow response, and derives LAeq.";
+
+const steps = [
+  {
+    n: "01",
+    title: "Capture the microphone",
+    body: "With your permission, the meter opens a microphone stream through getUserMedia. We request the raw signal with echo cancellation, noise suppression and automatic gain control disabled where the browser allows, so the level is not artificially altered.",
+  },
+  {
+    n: "02",
+    title: "Analyse the waveform",
+    body: "An AnalyserNode runs a 4096-point Fast Fourier Transform on each frame. From the time-domain samples we compute the RMS (root-mean-square) amplitude, and from the frequency-domain data we read the spectrum for the live bars.",
+  },
+  {
+    n: "03",
+    title: "Convert to decibels",
+    body: "The RMS amplitude is converted to a decibel value (20·log₁₀ of the amplitude). A configurable offset maps this onto an approximate sound-pressure scale, which your calibration setting fine-tunes.",
+  },
+  {
+    n: "04",
+    title: "Apply weighting",
+    body: "Using the spectrum, we apply an A-, C- or Z-weighting curve — the same response shapes defined in IEC 61672 — so the number reflects how humans perceive loudness (A), low-frequency energy (C), or the flat signal (Z).",
+  },
+  {
+    n: "05",
+    title: "Apply time response",
+    body: "An exponential time-weighting smooths the reading: Fast uses a 125 ms time constant, Slow uses 1 second. This is what makes the displayed number steady and readable instead of flickering every frame.",
+  },
+  {
+    n: "06",
+    title: "Accumulate statistics",
+    body: "We track the minimum, maximum and an energy-based average, plus LAeq — the equivalent continuous A-weighted level, computed by averaging sound energy (not decibels) across the whole session.",
+  },
+];
+---
+
+<Layout title={title} description={description} path="/how-it-works/">
+  <Section as="h1" eyebrow="Under the hood" title="How the meter works">
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
+      The whole measurement pipeline runs in your browser with the Web Audio
+      API. No plugins, no servers — here is each step from microphone to number.
+    </p>
+
+    <ol class="mt-12 grid gap-4 sm:grid-cols-2">
+      {
+        steps.map((s) => (
+          <li class="card panel-edge p-6">
+            <span class="font-mono text-sm text-primary">{s.n}</span>
+            <h2 class="mt-2 text-lg font-medium tracking-tight text-ink">
+              {s.title}
+            </h2>
+            <p class="mt-2 text-sm leading-relaxed text-ink-muted">{s.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="card mt-10 max-w-3xl p-6">
+      <p class="text-sm leading-relaxed text-ink-muted">
+        <strong class="text-ink">A note on honesty:</strong> this pipeline is sound,
+        but the input is not a calibrated sensor. The accuracy of the final number
+        is limited by your microphone hardware and the browser's processing. Read
+        more on our
+        <a class="text-primary hover:underline" href="/accuracy/"
+          >accuracy &amp; calibration</a
+        > page.
+      </p>
+    </div>
+  </Section>
+</Layout>

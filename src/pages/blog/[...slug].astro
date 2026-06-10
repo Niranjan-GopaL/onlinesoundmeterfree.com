@@ -1,0 +1,84 @@
+---
+import { getCollection, render } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import Layout from "../../layouts/Layout.astro";
+import { SITE } from "../../consts";
+
+export const getStaticPaths = (async () => {
+  const posts = await getCollection("blog");
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}) satisfies GetStaticPaths;
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const dateFmt = (d: Date) =>
+  d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
+  author: { "@type": "Organization", name: post.data.author },
+  publisher: { "@type": "Organization", name: SITE.name },
+  mainEntityOfPage: `${SITE.url}/blog/${post.id}/`,
+};
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  path={`/blog/${post.id}/`}
+  jsonLd={jsonLd}
+>
+  <article class="container-page py-16 sm:py-20">
+    <div class="mx-auto max-w-2xl">
+      <a
+        href="/blog/"
+        class="inline-flex items-center gap-1.5 text-sm text-ink-subtle transition-colors hover:text-ink"
+      >
+        ← All articles
+      </a>
+
+      <div class="mt-6 flex flex-wrap items-center gap-2 text-xs text-ink-tertiary">
+        <time datetime={post.data.pubDate.toISOString()}>
+          {dateFmt(post.data.pubDate)}
+        </time>
+        {
+          post.data.tags.map((tag) => (
+            <span class="rounded-full border border-hairline bg-surface-1 px-2.5 py-0.5 text-ink-subtle">
+              {tag}
+            </span>
+          ))
+        }
+      </div>
+
+      <h1 class="display-tight mt-4 text-3xl text-ink sm:text-4xl">
+        {post.data.title}
+      </h1>
+      <p class="mt-4 text-lg leading-relaxed text-ink-muted">
+        {post.data.description}
+      </p>
+
+      <hr class="my-8 border-hairline" />
+
+      <div class="rich-text">
+        <Content />
+      </div>
+
+      <div class="mt-12 rounded-xl border border-hairline bg-surface-1 p-6 text-center">
+        <p class="text-base font-medium text-ink">Try the meter for yourself</p>
+        <p class="mt-1.5 text-sm text-ink-muted">
+          Measure real sound levels in your browser — free, private, instant.
+        </p>
+        <a href="/" class="btn btn-primary mt-4">Open the sound meter →</a>
+      </div>
+    </div>
+  </article>
+</Layout>

@@ -1,0 +1,51 @@
+---
+// Light/dark toggle. The no-flash init script lives in Layout <head>;
+// this button just flips the class and persists the choice.
+---
+
+<button
+  id="theme-toggle"
+  type="button"
+  class="grid h-9 w-9 place-items-center rounded-md border border-hairline bg-surface-1 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+  aria-label="Toggle color theme"
+  title="Toggle light / dark"
+>
+  <!-- Sun (shown in dark mode, click → go light) -->
+  <svg
+    class="hidden h-[18px] w-[18px] dark:block"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4"></circle>
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+  </svg>
+  <!-- Moon (shown in light mode, click → go dark) -->
+  <svg
+    class="block h-[18px] w-[18px] dark:hidden"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+  </svg>
+</button>
+
+<script>
+  const btn = document.getElementById("theme-toggle");
+  btn?.addEventListener("click", () => {
+    const isDark = document.documentElement.classList.toggle("dark");
+    try {
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    } catch {}
+    btn.setAttribute("aria-pressed", String(isDark));
+  });
+</script>

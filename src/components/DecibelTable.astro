@@ -1,0 +1,62 @@
+---
+import { DB_EXAMPLES } from "../data/reference";
+
+interface Props {
+  /** Limit rows (e.g. a preview on the homepage). */
+  limit?: number;
+}
+const { limit } = Astro.props;
+const rows = limit ? DB_EXAMPLES.slice(0, limit) : DB_EXAMPLES;
+
+const zoneClass: Record<string, string> = {
+  quiet: "text-zone-quiet",
+  moderate: "text-zone-moderate",
+  elevated: "text-zone-high",
+  loud: "text-zone-loud",
+  danger: "text-zone-danger",
+};
+const zoneLabel: Record<string, string> = {
+  quiet: "Quiet",
+  moderate: "Moderate",
+  elevated: "Elevated",
+  loud: "Loud",
+  danger: "Danger",
+};
+---
+
+<div class="card overflow-hidden">
+  <table class="w-full text-left text-sm">
+    <caption class="sr-only">
+      Decibel reference levels with everyday examples and risk category
+    </caption>
+    <thead>
+      <tr class="border-b border-hairline text-ink-tertiary">
+        <th scope="col" class="px-4 py-3 font-medium">Level</th>
+        <th scope="col" class="px-4 py-3 font-medium">Typical source</th>
+        <th scope="col" class="hidden px-4 py-3 font-medium sm:table-cell"
+          >Category</th
+        >
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr class="border-b border-hairline last:border-0">
+            <td class="whitespace-nowrap px-4 py-3">
+              <span class="font-mono text-base font-medium tabular-nums text-ink">
+                {row.db}
+              </span>
+              <span class="text-ink-tertiary"> dB</span>
+            </td>
+            <td class="px-4 py-3 text-ink-muted">{row.label}</td>
+            <td class="hidden px-4 py-3 sm:table-cell">
+              <span class:list={["font-medium", zoneClass[row.zone]]}>
+                ● <span class="text-ink-muted">{zoneLabel[row.zone]}</span>
+              </span>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

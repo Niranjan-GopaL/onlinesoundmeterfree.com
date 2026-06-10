@@ -1,0 +1,102 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+import SoundMeter from "../components/SoundMeter.astro";
+import { SITE } from "../consts";
+
+const title = "Sound Meter for the Classroom — Free Noise Level Monitor";
+const description =
+  "A free classroom sound meter teachers can project on a screen to manage noise levels. Real-time decibel display, simple controls, and quiet/loud guidance — no app or sign-up.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE.url },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Classroom Sound Meter",
+      item: `${SITE.url}/sound-meter-for-classroom/`,
+    },
+  ],
+};
+
+const tips = [
+  {
+    title: "Project it on the board",
+    body: "Open the meter full-screen on your classroom display so students can see the level rise and fall in real time. A visible number is a powerful, calm reminder.",
+  },
+  {
+    title: "Set a target zone",
+    body: "Agree on a working level with your class — for example keeping group work under 60 dB. The colour-coded gauge makes the target easy to recognise at a glance.",
+  },
+  {
+    title: "Use it for transitions",
+    body: "Quiet-work, partner-talk and clean-up each have a natural noise level. Glancing at the meter helps students self-regulate without you raising your voice.",
+  },
+  {
+    title: "Track the average",
+    body: "The Avg and LAeq figures show the overall level across a lesson — useful for noticing trends and celebrating a genuinely calmer session.",
+  },
+];
+---
+
+<Layout
+  title={title}
+  description={description}
+  path="/sound-meter-for-classroom/"
+  jsonLd={jsonLd}
+>
+  <Section as="h1" eyebrow="For teachers" title="A sound meter built for the classroom">
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
+      Help students manage their own volume with a clear, real-time noise
+      display. It runs in any browser, needs no installation, and keeps all
+      audio on your device — nothing is recorded. Press start and project it on
+      your screen.
+    </p>
+
+    <div class="mx-auto mt-10 max-w-4xl">
+      <SoundMeter />
+    </div>
+  </Section>
+
+  <Section
+    eyebrow="Classroom tips"
+    title="Getting the most from a classroom noise monitor"
+    center
+  >
+    <div class="mt-12 grid gap-4 sm:grid-cols-2">
+      {
+        tips.map((t) => (
+          <div class="card p-6">
+            <h3 class="text-lg font-medium tracking-tight text-ink">
+              {t.title}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-ink-muted">{t.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section>
+    <div class="card panel-edge mx-auto max-w-3xl p-8 sm:p-10">
+      <h2 class="display-tight text-2xl text-ink">
+        What noise level is right for a classroom?
+      </h2>
+      <p class="mt-3 text-base leading-relaxed text-ink-muted">
+        The WHO suggests a background level around <strong class="text-ink"
+          >35 dBA</strong
+        > for clear teaching, since higher levels make speech harder to follow.
+        Quiet independent work typically sits below 50 dB, lively group work
+        around 60–65 dB, and a busy, unfocused room can climb past 70 dB. These
+        are guides, not rules — use the meter to find what works for your space
+        and activity.
+      </p>
+      <a href="/decibel-chart/" class="btn btn-secondary mt-6">
+        Compare everyday sound levels →
+      </a>
+    </div>
+  </Section>
+</Layout>

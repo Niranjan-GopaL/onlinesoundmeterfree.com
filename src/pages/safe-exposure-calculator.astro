@@ -1,0 +1,157 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+import { SITE } from "../consts";
+
+const title = "Safe Noise Exposure Calculator (NIOSH)";
+const description =
+  "Calculate how long you can safely be exposed to a given noise level using the NIOSH 85 dB recommended limit and 3 dB exchange rate. Free, instant, and based on official guidance.";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "Calculate safe noise exposure time",
+  description:
+    "Estimate safe daily exposure time for a measured A-weighted noise level using the NIOSH exchange rate.",
+  step: [
+    { "@type": "HowToStep", text: "Measure the noise level in dBA." },
+    { "@type": "HowToStep", text: "Enter the level into the calculator." },
+    {
+      "@type": "HowToStep",
+      text: "Read the recommended maximum daily exposure time.",
+    },
+  ],
+};
+---
+
+<Layout
+  title={title}
+  description={description}
+  path="/safe-exposure-calculator/"
+  jsonLd={jsonLd}
+>
+  <Section as="h1" eyebrow="Calculator" title="Safe noise exposure calculator">
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
+      NIOSH recommends keeping noise exposure at or below <strong
+        class="text-ink">85 dBA averaged over 8 hours</strong
+      >. For every 3 dB above that, the safe duration halves — the “3 dB
+      exchange rate”. Enter a level to see your recommended daily limit.
+    </p>
+
+    <div class="mt-10 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <!-- Calculator -->
+      <div class="card panel-edge p-6 sm:p-8">
+        <label for="level" class="block text-sm font-medium text-ink-muted">
+          Noise level (dBA)
+        </label>
+        <div class="mt-3 flex items-center gap-4">
+          <input
+            id="level"
+            type="range"
+            min="70"
+            max="120"
+            step="1"
+            value="94"
+            class="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-3 accent-primary"
+            aria-describedby="result-text"
+          />
+          <output
+            id="level-out"
+            class="w-20 shrink-0 rounded-md border border-hairline bg-canvas px-2 py-1.5 text-right font-mono text-lg tabular-nums text-ink"
+            >94</output
+          >
+        </div>
+
+        <div
+          class="mt-8 rounded-xl border border-hairline bg-canvas p-6 text-center"
+        >
+          <p class="text-xs uppercase tracking-wider text-ink-tertiary">
+            Recommended maximum daily exposure
+          </p>
+          <p
+            id="result"
+            class="display-tight mt-2 font-mono text-4xl text-ink sm:text-5xl"
+          >
+            1 hour
+          </p>
+          <p id="result-text" class="mt-3 text-sm text-ink-muted">
+            At 94 dBA, limit exposure to about 1 hour per day without hearing
+            protection.
+          </p>
+        </div>
+      </div>
+
+      <!-- Reference -->
+      <div class="card p-6">
+        <h2 class="text-base font-medium text-ink">NIOSH exposure limits</h2>
+        <table class="mt-4 w-full text-sm">
+          <thead>
+            <tr class="border-b border-hairline text-ink-tertiary">
+              <th scope="col" class="py-2 text-left font-medium">Level</th>
+              <th scope="col" class="py-2 text-right font-medium">Max / day</th>
+            </tr>
+          </thead>
+          <tbody class="font-mono tabular-nums">
+            {
+              [
+                ["85 dBA", "8 hours"],
+                ["88 dBA", "4 hours"],
+                ["91 dBA", "2 hours"],
+                ["94 dBA", "1 hour"],
+                ["97 dBA", "30 min"],
+                ["100 dBA", "15 min"],
+                ["103 dBA", "7.5 min"],
+                ["106 dBA", "< 4 min"],
+              ].map(([l, t]) => (
+                <tr class="border-b border-hairline last:border-0">
+                  <td class="py-2 text-ink-muted">{l}</td>
+                  <td class="py-2 text-right text-ink">{t}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+        <p class="mt-4 text-xs leading-relaxed text-ink-tertiary">
+          Based on the NIOSH recommended exposure limit (REL) of 85 dBA with a
+          3 dB exchange rate. Individual risk varies.
+        </p>
+      </div>
+    </div>
+
+    <a href="/" class="btn btn-primary mt-10">Measure a level now →</a>
+  </Section>
+</Layout>
+
+<script>
+  const slider = document.getElementById("level") as HTMLInputElement | null;
+  const out = document.getElementById("level-out");
+  const result = document.getElementById("result");
+  const text = document.getElementById("result-text");
+
+  function fmtDuration(seconds: number): string {
+    if (!isFinite(seconds)) return "Unlimited";
+    if (seconds >= 3600) {
+      const h = seconds / 3600;
+      return `${h % 1 === 0 ? h : h.toFixed(1)} hour${h === 1 ? "" : "s"}`;
+    }
+    if (seconds >= 60) return `${Math.round(seconds / 60)} min`;
+    return `${Math.round(seconds)} sec`;
+  }
+
+  function update() {
+    if (!slider) return;
+    const dba = Number(slider.value);
+    if (out) out.textContent = String(dba);
+    const seconds = dba < 85 ? Infinity : (8 * 3600) / 2 ** ((dba - 85) / 3);
+    if (result) result.textContent = fmtDuration(seconds);
+    if (text) {
+      text.textContent =
+        dba < 85
+          ? `At ${dba} dBA you are below the 85 dBA limit — safe for a full day, though quieter is always better.`
+          : `At ${dba} dBA, limit exposure to about ${fmtDuration(seconds)} per day without hearing protection.`;
+    }
+  }
+
+  slider?.addEventListener("input", update);
+  update();
+</script>

@@ -1,0 +1,67 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+
+const title = "Accuracy & Calibration of Online Sound Meters";
+const description =
+  "Honest guidance on how accurate a browser-based sound meter is, what affects the reading, and how to calibrate your device for the most reliable decibel measurements.";
+---
+
+<Layout title={title} description={description} path="/accuracy/">
+  <Section as="h1" eyebrow="Transparency" title="Accuracy & calibration">
+    <div class="mt-6 max-w-2xl space-y-5 text-base leading-relaxed text-ink-muted">
+      <p>
+        We would rather be honest than impressive: <strong class="text-ink"
+          >a browser sound meter is an estimate, not a laboratory instrument.</strong
+        > A professional Type 1 or Type 2 sound level meter uses a calibrated
+        measurement microphone and certified electronics. A phone or laptop uses
+        a tiny consumer mic tuned for voice calls, often behind automatic gain
+        control that compresses loud sounds.
+      </p>
+      <p>
+        That said, with a calibration offset set, this meter is typically
+        accurate to within a few decibels for everyday levels — more than enough
+        to compare rooms, monitor trends, manage a classroom, or decide whether
+        an environment warrants hearing protection.
+      </p>
+    </div>
+
+    <h2 class="display-tight mt-12 text-2xl text-ink">What affects accuracy</h2>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      {
+        [
+          ["Microphone hardware", "Consumer mics vary widely in sensitivity and frequency response, and many roll off bass and treble."],
+          ["Automatic gain control", "Browsers may quietly boost quiet sounds and limit loud ones. We disable it where possible, but not every browser honours the request."],
+          ["Physical obstruction", "A case, a finger, pocket lint or a screen protector over the mic port will lower readings significantly."],
+          ["Wind and handling", "Air moving across the mic or fingers brushing the device create false high readings. Keep the device still and shielded."],
+        ].map(([t, b]) => (
+          <div class="card p-6">
+            <h3 class="text-base font-medium text-ink">{t}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-ink-muted">{b}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <h2 class="display-tight mt-12 text-2xl text-ink">How to calibrate</h2>
+    <ol
+      class="mt-6 max-w-2xl list-decimal space-y-3 pl-5 text-base leading-relaxed text-ink-muted marker:text-ink-tertiary"
+    >
+      <li>
+        Find a reference: a calibrated sound level meter, a second device you
+        trust, or a known-quiet room (about 35–40 dB).
+      </li>
+      <li>Start measuring in the same spot at the same time.</li>
+      <li>
+        Note the difference between this meter and your reference, then enter it
+        in the calibration field on the meter.
+      </li>
+      <li>
+        The offset is applied to every reading. Re-check occasionally, since
+        device behaviour can change between sessions.
+      </li>
+    </ol>
+
+    <a href="/" class="btn btn-primary mt-10">Open the meter →</a>
+  </Section>
+</Layout>

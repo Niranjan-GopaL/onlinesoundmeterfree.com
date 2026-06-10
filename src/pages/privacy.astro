@@ -1,0 +1,50 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Section from "../components/Section.astro";
+
+const title = "Privacy Policy";
+const description =
+  "Our privacy approach is simple: your microphone audio is processed entirely on your device and never recorded, stored, or uploaded. Here is exactly how we handle data.";
+---
+
+<Layout title={title} description={description} path="/privacy/">
+  <Section as="h1" eyebrow="Privacy" title="Privacy policy">
+    <div class="mt-6 max-w-2xl space-y-5 text-base leading-relaxed text-ink-muted">
+      <p>
+        <strong class="text-ink">Your audio never leaves your device.</strong> The
+        microphone stream is analysed locally in your browser using the Web Audio
+        API and discarded frame by frame. We do not record, store, transmit, or
+        have any access to your audio.
+      </p>
+
+      <h2 class="display-tight pt-4 text-xl text-ink">What we collect</h2>
+      <p>
+        The meter itself collects nothing. Your calibration offset and theme
+        preference are stored only in your browser's local storage so the site
+        remembers them — they are never sent anywhere. CSV and PDF exports are
+        generated on your device and saved by you.
+      </p>
+
+      <h2 class="display-tight pt-4 text-xl text-ink">Microphone permission</h2>
+      <p>
+        Your browser asks for microphone access before measuring. This permission
+        is used solely to read the live sound level. You can revoke it at any time
+        in your browser settings; the meter simply stops working until you grant
+        it again.
+      </p>
+
+      <h2 class="display-tight pt-4 text-xl text-ink">Analytics & cookies</h2>
+      <p>
+        This site is a static page and sets no tracking cookies of its own. If we
+        add privacy-respecting, aggregate analytics in future, we will update this
+        page to describe it.
+      </p>
+
+      <h2 class="display-tight pt-4 text-xl text-ink">Contact</h2>
+      <p>
+        Questions about privacy? Reach us via the details on our
+        <a class="text-primary hover:underline" href="/about/">about</a> page.
+      </p>
+    </div>
+  </Section>
+</Layout>

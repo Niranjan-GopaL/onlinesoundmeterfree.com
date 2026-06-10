@@ -1,0 +1,760 @@
+---
+// The live sound-level meter. Self-contained: markup + client script (engine
+// imported from ../scripts/meter-engine). Runs entirely in the browser.
+---
+
+<section
+  id="meter"
+  class="card panel-edge overflow-hidden"
+  aria-label="Live sound level meter"
+>
+  <!-- Control bar -->
+  <div
+    class="flex flex-col gap-3 border-b border-hairline p-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div class="flex items-center gap-2.5">
+      <span
+        id="status-dot"
+        class="h-2 w-2 rounded-full bg-ink-tertiary"
+        aria-hidden="true"></span>
+      <span id="status-text" class="text-sm font-medium text-ink-muted"
+        >Microphone idle</span
+      >
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Frequency weighting -->
+      <div
+        class="flex items-center rounded-md border border-hairline bg-canvas p-0.5"
+        role="group"
+        aria-label="Frequency weighting"
+      >
+        <span class="px-2 text-xs text-ink-tertiary">Weight</span>
+        {
+          ["A", "C", "Z"].map((w, i) => (
+            <button
+              type="button"
+              data-weight={w}
+              aria-pressed={i === 0 ? "true" : "false"}
+              class="weight-btn min-w-8 rounded-[5px] px-2 py-1 text-xs font-medium text-ink-subtle transition-colors aria-pressed:bg-surface-2 aria-pressed:text-ink"
+            >
+              {w}
+            </button>
+          ))
+        }
+      </div>
+
+      <!-- Time response -->
+      <div
+        class="flex items-center rounded-md border border-hairline bg-canvas p-0.5"
+        role="group"
+        aria-label="Time response"
+      >
+        {
+          [
+            ["fast", "Fast"],
+            ["slow", "Slow"],
+          ].map(([val, label], i) => (
+            <button
+              type="button"
+              data-response={val}
+              aria-pressed={i === 0 ? "true" : "false"}
+              class="resp-btn rounded-[5px] px-2.5 py-1 text-xs font-medium text-ink-subtle transition-colors aria-pressed:bg-surface-2 aria-pressed:text-ink"
+            >
+              {label}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Main display -->
+  <div class="grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <!-- Gauge + readout -->
+    <div class="relative mx-auto aspect-square w-full max-w-[380px]">
+      <canvas id="gauge" class="h-full w-full"></canvas>
+      <div
+        class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+      >
+        <div class="flex items-baseline gap-1">
+          <span
+            id="db-value"
+            class="font-mono text-6xl font-semibold tabular-nums text-ink sm:text-7xl"
+            >--</span
+          >
+        </div>
+        <div class="mt-1 text-sm text-ink-subtle">
+          dB<span id="weight-label" class="text-ink-tertiary">A</span> ·
+          <span id="resp-label">Fast</span>
+        </div>
+        <div
+          id="zone-label"
+          class="mt-3 rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-medium text-ink-muted"
+        >
+          Idle
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats + spectrum -->
+    <div class="flex flex-col gap-4">
+      <div class="grid grid-cols-2 gap-2.5">
+        {
+          [
+            ["stat-min", "Min"],
+            ["stat-max", "Max"],
+            ["stat-avg", "Avg"],
+            ["stat-leq", "LAeq"],
+          ].map(([id, label]) => (
+            <div class="rounded-lg border border-hairline bg-canvas px-3 py-2.5">
+              <div class="text-[11px] uppercase tracking-wider text-ink-tertiary">
+                {label}
+              </div>
+              <div
+                id={id}
+                class="mt-0.5 font-mono text-xl font-medium tabular-nums text-ink"
+              >
+                --
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="rounded-lg border border-hairline bg-canvas p-3">
+        <div
+          class="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wider text-ink-tertiary"
+        >
+          <span>Frequency spectrum</span>
+          <span class="font-mono">FFT 4096</span>
+        </div>
+        <canvas id="spectrum" class="h-24 w-full"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- History chart -->
+  <div class="px-4 sm:px-6">
+    <div
+      class="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wider text-ink-tertiary"
+    >
+      <span>Level history · last 60 s</span>
+      <span class="flex items-center gap-1.5">
+        <span class="h-px w-4 bg-zone-loud" aria-hidden="true"></span>
+        NIOSH 85 dB limit
+      </span>
+    </div>
+    <canvas id="history" class="h-40 w-full"></canvas>
+  </div>
+
+  <!-- Action bar -->
+  <div
+    class="mt-4 flex flex-col gap-3 border-t border-hairline p-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div class="flex flex-wrap items-center gap-2">
+      <button id="toggle-btn" type="button" class="btn btn-primary">
+        <svg
+          id="toggle-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M8 5v14l11-7z"></path>
+        </svg>
+        <span id="toggle-label">Start measuring</span>
+      </button>
+      <button id="reset-btn" type="button" class="btn btn-secondary" disabled>
+        Reset
+      </button>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="flex items-center gap-2 text-xs text-ink-subtle">
+        Calibrate
+        <input
+          id="calibration"
+          type="number"
+          value="0"
+          step="1"
+          min="-40"
+          max="40"
+          class="w-16 rounded-md border border-hairline bg-canvas px-2 py-1 text-right font-mono text-ink"
+          aria-label="Calibration offset in decibels"
+        />
+        <span class="font-mono">dB</span>
+      </label>
+      <button id="csv-btn" type="button" class="btn btn-ghost" disabled>
+        Export CSV
+      </button>
+      <button id="report-btn" type="button" class="btn btn-ghost" disabled>
+        Save PDF
+      </button>
+    </div>
+  </div>
+
+  <p id="meter-note" class="px-4 pb-4 text-xs leading-relaxed text-ink-tertiary">
+    Audio is processed locally and never leaves your device. A phone or laptop
+    mic is not a calibrated meter — readings are reference estimates. Use the
+    calibration offset to align against a known reference.
+  </p>
+
+  <!-- Screen-reader live summary (throttled in JS to avoid spam). -->
+  <p id="sr-summary" class="sr-only" role="status" aria-live="polite"></p>
+</section>
+
+<script>
+  import {
+    BASE_OFFSET,
+    LevelStats,
+    buildWeightingTable,
+    rmsToDbfs,
+    smooth,
+    weightingDelta,
+    zoneFor,
+    type Response,
+    type Weighting,
+  } from "../scripts/meter-engine";
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
+    document.getElementById(id) as T | null;
+
+  const meter = $("meter");
+  if (meter) initMeter();
+
+  function initMeter() {
+    const gauge = $<HTMLCanvasElement>("gauge")!;
+    const spectrum = $<HTMLCanvasElement>("spectrum")!;
+    const history = $<HTMLCanvasElement>("history")!;
+    const dbValue = $("db-value")!;
+    const zoneLabel = $("zone-label")!;
+    const weightLabel = $("weight-label")!;
+    const respLabel = $("resp-label")!;
+    const statusDot = $("status-dot")!;
+    const statusText = $("status-text")!;
+    const note = $("meter-note")!;
+    const srSummary = $("sr-summary")!;
+    const toggleBtn = $<HTMLButtonElement>("toggle-btn")!;
+    const toggleLabel = $("toggle-label")!;
+    const toggleIcon = $("toggle-icon")!;
+    const resetBtn = $<HTMLButtonElement>("reset-btn")!;
+    const csvBtn = $<HTMLButtonElement>("csv-btn")!;
+    const reportBtn = $<HTMLButtonElement>("report-btn")!;
+    const calInput = $<HTMLInputElement>("calibration")!;
+
+    const MAX_DB = 130;
+    const PLAY = "M8 5v14l11-7z";
+    const STOP = "M6 6h12v12H6z";
+
+    // ---- State ----
+    let running = false;
+    let audioCtx: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let source: MediaStreamAudioSourceNode | null = null;
+    let stream: MediaStream | null = null;
+    let raf = 0;
+    let lastT = 0;
+    let weighting: Weighting = "A";
+    let response: Response = "fast";
+    let calibration = 0;
+    let displayLevel = NaN;
+    let aLevel = NaN;
+    const stats = new LevelStats();
+
+    let timeBuf = new Float32Array(0);
+    let freqBuf = new Float32Array(0);
+    let byteBuf = new Uint8Array(0);
+    let tableSel = new Float32Array(0); // selected weighting
+    let tableA = new Float32Array(0); // A-weighting (for LAeq)
+
+    type Point = { t: number; db: number };
+    const hist: Point[] = [];
+    const HIST_MS = 60_000;
+    const sessionStart = { t: 0 };
+
+    // ---- Theme-reactive palette ----
+    let pal = readPalette();
+    function readPalette() {
+      const s = getComputedStyle(document.documentElement);
+      const v = (n: string) => s.getPropertyValue(n).trim();
+      return {
+        ink: v("--ink"),
+        inkSubtle: v("--ink-subtle"),
+        inkTertiary: v("--ink-tertiary"),
+        hairline: v("--hairline"),
+        surface2: v("--surface-2"),
+        primary: v("--primary"),
+        quiet: v("--zone-quiet"),
+        moderate: v("--zone-moderate"),
+        high: v("--zone-high"),
+        loud: v("--zone-loud"),
+        danger: v("--zone-danger"),
+      };
+    }
+    const zoneColor = (id: string) =>
+      id === "quiet"
+        ? pal.quiet
+        : id === "moderate"
+          ? pal.moderate
+          : id === "elevated"
+            ? pal.high
+            : id === "loud"
+              ? pal.loud
+              : pal.danger;
+
+    new MutationObserver(() => {
+      pal = readPalette();
+      drawAll();
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    // ---- Canvas sizing (DPR-aware) ----
+    function fit(canvas: HTMLCanvasElement) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const r = canvas.getBoundingClientRect();
+      const w = Math.max(1, Math.round(r.width * dpr));
+      const h = Math.max(1, Math.round(r.height * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      const ctx = canvas.getContext("2d")!;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { ctx, w: r.width, h: r.height };
+    }
+
+    const ro = new ResizeObserver(() => drawAll());
+    [gauge, spectrum, history].forEach((c) => ro.observe(c));
+
+    // ---- Drawing ----
+    function drawGauge() {
+      const { ctx, w, h } = fit(gauge);
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2;
+      const cy = h / 2 + h * 0.04;
+      const radius = Math.min(w, h) * 0.42;
+      const start = Math.PI * 0.75;
+      const sweep = Math.PI * 1.5;
+      const lw = Math.max(8, radius * 0.13);
+
+      // Track
+      ctx.lineCap = "round";
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = pal.hairline;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, start, start + sweep);
+      ctx.stroke();
+
+      // Ticks + labels
+      ctx.fillStyle = pal.inkTertiary;
+      ctx.font = "11px ui-monospace, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let d = 0; d <= MAX_DB; d += 10) {
+        const a = start + (d / MAX_DB) * sweep;
+        const major = d % 30 === 0;
+        const r1 = radius - lw / 2 - 3;
+        const r2 = r1 - (major ? 9 : 5);
+        ctx.strokeStyle = pal.hairline;
+        ctx.lineWidth = major ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+        ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+        ctx.stroke();
+        if (major) {
+          const rl = r2 - 12;
+          ctx.fillText(
+            String(d),
+            cx + Math.cos(a) * rl,
+            cy + Math.sin(a) * rl,
+          );
+        }
+      }
+
+      // Value arc
+      if (Number.isFinite(displayLevel)) {
+        const frac = Math.max(0, Math.min(1, displayLevel / MAX_DB));
+        const z = zoneFor(displayLevel);
+        const col = zoneColor(z.id);
+        const a = start + frac * sweep;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, start, a);
+        ctx.stroke();
+
+        // Glow dot at the tip
+        ctx.fillStyle = col;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, lw * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function drawSpectrum() {
+      const { ctx, w, h } = fit(spectrum);
+      ctx.clearRect(0, 0, w, h);
+      if (!analyser || !running) {
+        ctx.fillStyle = pal.inkTertiary;
+        ctx.font = "11px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("Start measuring to see live spectrum", w / 2, h / 2);
+        return;
+      }
+      const bins = byteBuf.length;
+      const bars = 56;
+      const gap = 2;
+      const bw = (w - gap * (bars - 1)) / bars;
+      for (let i = 0; i < bars; i++) {
+        // log-spaced bin sampling
+        const lo = Math.floor((bins * (Math.pow(i / bars, 2) || 0)) );
+        const hi = Math.max(lo + 1, Math.floor(bins * Math.pow((i + 1) / bars, 2)));
+        let m = 0;
+        for (let j = lo; j < hi && j < bins; j++) m = Math.max(m, byteBuf[j]);
+        const mag = m / 255;
+        const bh = Math.max(1, mag * h);
+        const x = i * (bw + gap);
+        const grad = ctx.createLinearGradient(0, h, 0, h - bh);
+        grad.addColorStop(0, pal.primary + "55");
+        grad.addColorStop(1, pal.primary);
+        ctx.fillStyle = grad;
+        roundRect(ctx, x, h - bh, bw, bh, Math.min(2, bw / 2));
+        ctx.fill();
+      }
+    }
+
+    function drawHistory() {
+      const { ctx, w, h } = fit(history);
+      ctx.clearRect(0, 0, w, h);
+      const padL = 28;
+      const plotW = w - padL - 4;
+      const yFor = (db: number) => h - (Math.max(0, Math.min(MAX_DB, db)) / MAX_DB) * (h - 6) - 3;
+
+      // Gridlines + y labels
+      ctx.font = "10px ui-monospace, monospace";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (let d = 0; d <= 120; d += 30) {
+        const y = yFor(d);
+        ctx.strokeStyle = pal.hairline;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(w - 2, y);
+        ctx.stroke();
+        ctx.fillStyle = pal.inkTertiary;
+        ctx.fillText(String(d), padL - 6, y);
+      }
+
+      // NIOSH 85 dB threshold
+      const y85 = yFor(85);
+      ctx.strokeStyle = pal.loud;
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, y85);
+      ctx.lineTo(w - 2, y85);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (hist.length < 2) return;
+      const now = performance.now();
+      const xFor = (t: number) => padL + ((t - (now - HIST_MS)) / HIST_MS) * plotW;
+
+      // Area fill
+      ctx.beginPath();
+      ctx.moveTo(xFor(hist[0].t), h - 3);
+      for (const p of hist) ctx.lineTo(xFor(p.t), yFor(p.db));
+      ctx.lineTo(xFor(hist[hist.length - 1].t), h - 3);
+      ctx.closePath();
+      const fill = ctx.createLinearGradient(0, 0, 0, h);
+      fill.addColorStop(0, pal.primary + "33");
+      fill.addColorStop(1, pal.primary + "00");
+      ctx.fillStyle = fill;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      hist.forEach((p, i) => {
+        const x = xFor(p.t);
+        const y = yFor(p.db);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = pal.primary;
+      ctx.lineWidth = 1.75;
+      ctx.lineJoin = "round";
+      ctx.stroke();
+    }
+
+    function roundRect(
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number,
+    ) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawAll() {
+      drawGauge();
+      drawSpectrum();
+      drawHistory();
+    }
+    drawAll();
+
+    // ---- Audio loop ----
+    function rebuildTables() {
+      if (!analyser || !audioCtx) return;
+      const bins = analyser.frequencyBinCount;
+      tableSel = buildWeightingTable(bins, audioCtx.sampleRate, weighting);
+      tableA = buildWeightingTable(bins, audioCtx.sampleRate, "A");
+    }
+
+    function loop(now: number) {
+      if (!running || !analyser) return;
+      const dt = lastT ? (now - lastT) / 1000 : 0.016;
+      lastT = now;
+
+      analyser.getFloatTimeDomainData(timeBuf);
+      analyser.getFloatFrequencyData(freqBuf);
+      analyser.getByteFrequencyData(byteBuf);
+
+      const dbfs = rmsToDbfs(timeBuf);
+      const selDelta = weightingDelta(freqBuf, tableSel);
+      const aDelta = weightingDelta(freqBuf, tableA);
+
+      const rawSel = clamp(dbfs + selDelta + BASE_OFFSET + calibration);
+      const rawA = clamp(dbfs + aDelta + BASE_OFFSET + calibration);
+
+      displayLevel = smooth(displayLevel, rawSel, response, dt);
+      aLevel = smooth(aLevel, rawA, response, dt);
+
+      if (Number.isFinite(displayLevel)) {
+        stats.add(displayLevel, aLevel);
+        hist.push({ t: now, db: displayLevel });
+        while (hist.length && now - hist[0].t > HIST_MS) hist.shift();
+        updateReadout();
+      }
+      drawAll();
+      raf = requestAnimationFrame(loop);
+    }
+
+    const clamp = (d: number) =>
+      Number.isFinite(d) ? Math.max(0, Math.min(MAX_DB, d)) : NaN;
+
+    function fmt(d: number) {
+      return Number.isFinite(d) ? d.toFixed(1) : "--";
+    }
+
+    function updateReadout() {
+      dbValue.textContent = fmt(displayLevel);
+      const z = zoneFor(displayLevel);
+      zoneLabel.textContent = z.label;
+      zoneLabel.style.color = zoneColor(z.id);
+      zoneLabel.style.borderColor = zoneColor(z.id) + "66";
+      $("stat-min")!.textContent = fmt(stats.min);
+      $("stat-max")!.textContent = fmt(stats.max);
+      $("stat-avg")!.textContent = fmt(stats.avg);
+      $("stat-leq")!.textContent = fmt(stats.laeq);
+    }
+
+    // Throttled SR announcements (every 3s while running).
+    let srTimer = 0;
+    function startSr() {
+      srTimer = window.setInterval(() => {
+        if (Number.isFinite(displayLevel)) {
+          srSummary.textContent = `${fmt(displayLevel)} decibels, ${zoneFor(displayLevel).label}. Average ${fmt(stats.avg)}, max ${fmt(stats.max)}.`;
+        }
+      }, 3000);
+    }
+
+    // ---- Start / stop ----
+    async function start() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        fail("This browser does not support microphone access.");
+        return;
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+      } catch {
+        fail(
+          "Microphone permission denied. Allow access and reload to measure. Audio stays on your device.",
+        );
+        return;
+      }
+      audioCtx = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0; // we apply IEC time-weighting ourselves
+      source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      timeBuf = new Float32Array(analyser.fftSize);
+      freqBuf = new Float32Array(analyser.frequencyBinCount);
+      byteBuf = new Uint8Array(analyser.frequencyBinCount);
+      rebuildTables();
+
+      running = true;
+      lastT = 0;
+      sessionStart.t = Date.now();
+      displayLevel = NaN;
+      aLevel = NaN;
+      setRunningUI(true);
+      startSr();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      cancelAnimationFrame(raf);
+      clearInterval(srTimer);
+      source?.disconnect();
+      stream?.getTracks().forEach((t) => t.stop());
+      audioCtx?.close();
+      audioCtx = null;
+      analyser = null;
+      setRunningUI(false);
+      drawAll();
+    }
+
+    function setRunningUI(on: boolean) {
+      toggleLabel.textContent = on ? "Stop" : "Start measuring";
+      toggleIcon.querySelector("path")?.setAttribute("d", on ? STOP : PLAY);
+      statusDot.classList.toggle("bg-success", on);
+      statusDot.classList.toggle("bg-ink-tertiary", !on);
+      if (on) statusDot.classList.add("animate-pulse");
+      else statusDot.classList.remove("animate-pulse");
+      statusText.textContent = on ? "Measuring…" : "Microphone idle";
+      resetBtn.disabled = !on;
+      csvBtn.disabled = !on;
+      reportBtn.disabled = !on;
+    }
+
+    function fail(msg: string) {
+      note.textContent = msg;
+      note.classList.add("text-zone-loud");
+      statusText.textContent = "Unavailable";
+    }
+
+    // ---- Controls ----
+    toggleBtn.addEventListener("click", () => (running ? stop() : start()));
+    resetBtn.addEventListener("click", () => {
+      stats.reset();
+      hist.length = 0;
+      updateReadout();
+    });
+
+    document.querySelectorAll<HTMLButtonElement>(".weight-btn").forEach((b) =>
+      b.addEventListener("click", () => {
+        weighting = b.dataset.weight as Weighting;
+        document
+          .querySelectorAll(".weight-btn")
+          .forEach((x) =>
+            x.setAttribute("aria-pressed", String(x === b)),
+          );
+        weightLabel.textContent = weighting;
+        if (running) rebuildTables();
+      }),
+    );
+    document.querySelectorAll<HTMLButtonElement>(".resp-btn").forEach((b) =>
+      b.addEventListener("click", () => {
+        response = b.dataset.response as Response;
+        document
+          .querySelectorAll(".resp-btn")
+          .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        respLabel.textContent = response === "fast" ? "Fast" : "Slow";
+      }),
+    );
+    calInput.addEventListener("input", () => {
+      calibration = Number(calInput.value) || 0;
+    });
+
+    // ---- Export ----
+    csvBtn.addEventListener("click", () => {
+      const rows = [
+        ["elapsed_seconds", "level_db_" + weighting.toLowerCase()],
+        ...hist.map((p, i, a) => [
+          ((p.t - a[0].t) / 1000).toFixed(2),
+          p.db.toFixed(1),
+        ]),
+      ];
+      const csv = rows.map((r) => r.join(",")).join("\n");
+      download(
+        new Blob([csv], { type: "text/csv" }),
+        `sound-level-${new Date().toISOString().slice(0, 19)}.csv`,
+      );
+    });
+
+    reportBtn.addEventListener("click", printReport);
+
+    function printReport() {
+      const w = window.open("", "_blank", "width=720,height=900");
+      if (!w) return;
+      const now = new Date();
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+        <title>Sound Level Report</title>
+        <style>
+          body{font:14px/1.6 system-ui,sans-serif;color:#111;max-width:640px;margin:40px auto;padding:0 24px}
+          h1{font-size:22px;margin:0 0 4px} .muted{color:#666}
+          table{width:100%;border-collapse:collapse;margin:20px 0}
+          td,th{text-align:left;padding:8px 0;border-bottom:1px solid #eee}
+          .big{font-size:34px;font-weight:600}
+          .note{font-size:12px;color:#777;margin-top:24px}
+        </style></head><body>
+        <h1>Sound Level Report</h1>
+        <div class="muted">${now.toLocaleString()}</div>
+        <p class="big">${fmt(stats.avg)} dB${weighting} <span class="muted" style="font-size:14px">average</span></p>
+        <table>
+          <tr><th>Metric</th><th>Value</th></tr>
+          <tr><td>Minimum</td><td>${fmt(stats.min)} dB${weighting}</td></tr>
+          <tr><td>Maximum</td><td>${fmt(stats.max)} dB${weighting}</td></tr>
+          <tr><td>Average</td><td>${fmt(stats.avg)} dB${weighting}</td></tr>
+          <tr><td>LAeq (equivalent continuous, A-weighted)</td><td>${fmt(stats.laeq)} dBA</td></tr>
+          <tr><td>Time response</td><td>${response === "fast" ? "Fast (125 ms)" : "Slow (1 s)"}</td></tr>
+          <tr><td>Calibration offset</td><td>${calibration} dB</td></tr>
+        </table>
+        <p class="note">Generated by Online Sound Meter. Readings are uncalibrated
+        reference estimates from a consumer microphone, not a substitute for a
+        Type 1/2 sound level meter. Sources: NIOSH, WHO, NIDCD.</p>
+        <script>window.onload=function(){window.print()}<\/script>
+        </body></html>`);
+      w.document.close();
+    }
+
+    function download(blob: Blob, name: string) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Pause when tab hidden to save battery.
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && running) stop();
+    });
+  }
+</script>
