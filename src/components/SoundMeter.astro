@@ -624,6 +624,7 @@ const strings = {
       $("stat-max")!.textContent = fmt(stats.max);
       $("stat-avg")!.textContent = fmt(stats.avg);
       $("stat-leq")!.textContent = fmt(stats.laeq);
+      syncButtons();
     }
 
     // Throttled SR announcements (every 3s while running).
@@ -703,9 +704,20 @@ const strings = {
       if (on) statusDot.classList.add("animate-pulse");
       else statusDot.classList.remove("animate-pulse");
       statusText.textContent = on ? S.measuring : S.idle;
-      resetBtn.disabled = !on;
-      csvBtn.disabled = !on;
-      reportBtn.disabled = !on;
+      syncButtons();
+    }
+
+    // CSV/PDF stay usable after you stop, as long as a session captured data —
+    // the common flow is measure → stop → save. They only lock when there is
+    // nothing to export (fresh load or just after Reset).
+    function exportable() {
+      return hist.length > 0 || stats.max > -Infinity;
+    }
+    function syncButtons() {
+      const data = exportable();
+      resetBtn.disabled = !(running || data);
+      csvBtn.disabled = !data;
+      reportBtn.disabled = !data;
     }
 
     function fail(msg: string) {
@@ -720,6 +732,7 @@ const strings = {
       stats.reset();
       hist.length = 0;
       updateReadout();
+      syncButtons();
     });
 
     document.querySelectorAll<HTMLButtonElement>(".weight-btn").forEach((b) =>
@@ -765,12 +778,10 @@ const strings = {
 
     reportBtn.addEventListener("click", printReport);
 
-    function printReport() {
-      const w = window.open("", "_blank", "width=720,height=900");
-      if (!w) return;
+    function reportHtml() {
       const now = new Date();
       const R = S.report;
-      w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+      return `<!doctype html><html><head><meta charset="utf-8">
         <title>${R.title}</title>
         <style>
           body{font:14px/1.6 system-ui,sans-serif;color:#111;max-width:640px;margin:40px auto;padding:0 24px}
@@ -793,9 +804,32 @@ const strings = {
           <tr><td>${R.calibrate}</td><td>${calibration} dB</td></tr>
         </table>
         <p class="note">${R.note}</p>
-        <script>window.onload=function(){window.print()}<\/script>
-        </body></html>`);
-      w.document.close();
+        </body></html>`;
+    }
+
+    // Print via a hidden iframe instead of window.open() so it is never killed
+    // by a popup blocker (the #1 reason "Save PDF" appears to do nothing).
+    function printReport() {
+      const iframe = document.createElement("iframe");
+      iframe.setAttribute("aria-hidden", "true");
+      iframe.style.cssText =
+        "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      document.body.appendChild(iframe);
+      const win = iframe.contentWindow;
+      if (!win) {
+        iframe.remove();
+        return;
+      }
+      win.document.open();
+      win.document.write(reportHtml());
+      win.document.close();
+      const run = () => {
+        win.focus();
+        win.print();
+        setTimeout(() => iframe.remove(), 1000);
+      };
+      if (win.document.readyState === "complete") setTimeout(run, 60);
+      else win.onload = () => setTimeout(run, 60);
     }
 
     function download(blob: Blob, name: string) {
