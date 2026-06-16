@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 import { SITE } from "../consts";
 
@@ -118,7 +119,7 @@ const jsonLd = {
       </div>
     </div>
 
-    <a href="/" class="btn btn-primary mt-10">Measure a level now →</a>
+    <a href={url("/")} class="btn btn-primary mt-10">Measure a level now →</a>
   </Section>
 </Layout>
 

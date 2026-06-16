@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 
 const title = "How the Online Sound Meter Works";
@@ -67,7 +68,7 @@ const steps = [
         but the input is not a calibrated sensor. The accuracy of the final number
         is limited by your microphone hardware and the browser's processing. Read
         more on our
-        <a class="text-primary hover:underline" href="/accuracy/"
+        <a class="text-primary hover:underline" href={url("/accuracy/")}
           >accuracy &amp; calibration</a
         > page.
       </p>

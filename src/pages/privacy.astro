@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 
 const title = "Privacy Policy";
@@ -43,7 +44,7 @@ const description =
       <h2 class="display-tight pt-4 text-xl text-ink">Contact</h2>
       <p>
         Questions about privacy? Reach us via the details on our
-        <a class="text-primary hover:underline" href="/about/">about</a> page.
+        <a class="text-primary hover:underline" href={url("/about/")}>about</a> page.
       </p>
     </div>
   </Section>

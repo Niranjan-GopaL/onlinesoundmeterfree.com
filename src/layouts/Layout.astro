@@ -4,15 +4,22 @@ import "@fontsource-variable/jetbrains-mono";
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import KeyboardShortcuts from "../components/KeyboardShortcuts.astro";
+import LangBanner from "../components/LangBanner.astro";
 import { SITE } from "../consts";
+import { LOCALES, DEFAULT_LOCALE } from "../i18n/config.mjs";
+import { getLangFromUrl, useTranslations, getLocale } from "../i18n/utils";
+import { url, logicalPath } from "../lib/path";
 
 interface Props {
   title?: string;
   description?: string;
-  /** Path-only canonical (e.g. "/decibel-chart/"). Defaults to current URL. */
+  /** Locale-less canonical path (e.g. "/decibel-chart/"). Defaults to current. */
   path?: string;
   ogImage?: string;
   noindex?: boolean;
+  /** True when translated versions exist at /{lang}{path} for every locale. */
+  localized?: boolean;
   /** JSON-LD structured data object(s). */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
@@ -23,26 +30,71 @@ const {
   path,
   ogImage = "/og-default.svg",
   noindex = false,
+  localized = false,
   jsonLd,
 } = Astro.props;
 
-const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
-const canonical = new URL(path ?? Astro.url.pathname, SITE.url).href;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const meta = getLocale(lang);
+
+// Logical (locale-less, base-less) path for this page.
+const logical = path ?? logicalPath(Astro.url.pathname);
+
+// Canonical + alternates always point at the REAL domain, so search engines
+// consolidate the github.io preview onto it.
+const localePath = (code: string) =>
+  (code === DEFAULT_LOCALE ? "" : `/${code}`) +
+  (logical === "/" ? "/" : logical);
+const canonical = new URL(localePath(lang), SITE.url).href;
 const ogImageUrl = new URL(ogImage, SITE.url).href;
+
+// The github.io preview build is never indexable (avoids duplicate content).
+const isGitHubPages = import.meta.env.DEPLOY_ENV === "gh-pages";
+const robots = noindex || isGitHubPages ? "noindex, nofollow" : null;
+
+const fullTitle = title
+  ? `${title} · ${SITE.name}`
+  : `${SITE.name} — ${SITE.tagline}`;
+
 const jsonLdArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={meta.hreflang} dir={meta.dir}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href={url("/favicon.svg")} />
+    <link rel="icon" type="image/x-icon" href={url("/favicon.ico")} sizes="any" />
+    <link rel="apple-touch-icon" href={url("/favicon.svg")} />
+    <link rel="manifest" href={url("/site.webmanifest")} />
 
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {robots && <meta name="robots" content={robots} />}
+
+    {/* hreflang alternates — only for pages that are actually localized. */}
+    {
+      localized && (
+        <>
+          {LOCALES.map((l) => (
+            <link
+              rel="alternate"
+              hreflang={l.hreflang}
+              href={new URL(localePath(l.code), SITE.url).href}
+            />
+          ))}
+          <link
+            rel="alternate"
+            hreflang="x-default"
+            href={new URL(localePath(DEFAULT_LOCALE), SITE.url).href}
+          />
+        </>
+      )
+    }
+
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#010102" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
@@ -54,7 +106,13 @@ const jsonLdArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImageUrl} />
-    <meta property="og:locale" content={SITE.locale} />
+    <meta property="og:locale" content={meta.ogLocale} />
+    {
+      localized &&
+        LOCALES.filter((l) => l.code !== lang).map((l) => (
+          <meta property="og:locale:alternate" content={l.ogLocale} />
+        ))
+    }
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -64,10 +122,7 @@ const jsonLdArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     {
       jsonLdArray.map((data) => (
-        <script
-          type="application/ld+json"
-          set:html={JSON.stringify(data)}
-        />
+        <script type="application/ld+json" set:html={JSON.stringify(data)} />
       ))
     }
 
@@ -93,12 +148,14 @@ const jsonLdArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       href="#main"
       class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
     >
-      Skip to content
+      {t("common.skip")}
     </a>
+    <LangBanner />
     <Header />
     <main id="main">
       <slot />
     </main>
     <Footer />
+    <KeyboardShortcuts />
   </body>
 </html>

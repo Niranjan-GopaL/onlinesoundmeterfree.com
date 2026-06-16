@@ -1,4 +1,7 @@
 // Centralized site metadata + navigation. Single source of truth for SEO + chrome.
+// Labels are i18n keys (see src/i18n/ui.ts), resolved at render time per locale.
+
+import type { UIKey } from "./i18n/ui";
 
 export const SITE = {
   name: "Online Sound Meter",
@@ -12,40 +15,58 @@ export const SITE = {
   twitter: "@onlinesoundmeter",
 } as const;
 
-export const NAV_LINKS = [
-  { label: "Meter", href: "/" },
-  { label: "Decibel Chart", href: "/decibel-chart/" },
-  { label: "Safe Exposure", href: "/safe-exposure-calculator/" },
-  { label: "Classroom", href: "/sound-meter-for-classroom/" },
-  { label: "Blog", href: "/blog/" },
-  { label: "FAQ", href: "/faq/" },
-] as const;
+export interface NavLink {
+  /** i18n key for the visible label. */
+  key: UIKey;
+  /** Locale-less path. */
+  href: string;
+  /**
+   * True when a localized version of this page exists at /{lang}{href}.
+   * Currently only the home/meter page; everything else links to the English
+   * page (with hreflang) until those pages are translated too.
+   */
+  localized?: boolean;
+}
 
-export const FOOTER_SECTIONS = [
+export const NAV_LINKS: NavLink[] = [
+  { key: "nav.meter", href: "/", localized: true },
+  { key: "nav.decibelChart", href: "/decibel-chart/" },
+  { key: "nav.safeExposure", href: "/safe-exposure-calculator/" },
+  { key: "nav.classroom", href: "/sound-meter-for-classroom/" },
+  { key: "nav.blog", href: "/blog/" },
+  { key: "nav.faq", href: "/faq/" },
+];
+
+export interface FooterSection {
+  titleKey: UIKey;
+  links: NavLink[];
+}
+
+export const FOOTER_SECTIONS: FooterSection[] = [
   {
-    title: "Tools",
+    titleKey: "footer.tools",
     links: [
-      { label: "Sound Level Meter", href: "/" },
-      { label: "Decibel (dB) Chart", href: "/decibel-chart/" },
-      { label: "Safe Exposure Calculator", href: "/safe-exposure-calculator/" },
-      { label: "Classroom Noise Meter", href: "/sound-meter-for-classroom/" },
+      { key: "nav.meter", href: "/", localized: true },
+      { key: "nav.decibelChart", href: "/decibel-chart/" },
+      { key: "nav.safeExposure", href: "/safe-exposure-calculator/" },
+      { key: "nav.classroom", href: "/sound-meter-for-classroom/" },
     ],
   },
   {
-    title: "Learn",
+    titleKey: "footer.learn",
     links: [
-      { label: "Blog", href: "/blog/" },
-      { label: "FAQ", href: "/faq/" },
-      { label: "How it works", href: "/how-it-works/" },
-      { label: "Accuracy & calibration", href: "/accuracy/" },
+      { key: "nav.blog", href: "/blog/" },
+      { key: "nav.faq", href: "/faq/" },
+      { key: "nav.howItWorks", href: "/how-it-works/" },
+      { key: "nav.accuracy", href: "/accuracy/" },
     ],
   },
   {
-    title: "About",
+    titleKey: "footer.about",
     links: [
-      { label: "About", href: "/about/" },
-      { label: "Methodology", href: "/about/#methodology" },
-      { label: "Privacy", href: "/privacy/" },
+      { key: "nav.about", href: "/about/" },
+      { key: "nav.methodology", href: "/about/#methodology" },
+      { key: "nav.privacy", href: "/privacy/" },
     ],
   },
-] as const;
+];

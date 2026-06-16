@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 import SoundMeter from "../components/SoundMeter.astro";
 import { SITE } from "../consts";
@@ -94,7 +95,7 @@ const tips = [
         are guides, not rules — use the meter to find what works for your space
         and activity.
       </p>
-      <a href="/decibel-chart/" class="btn btn-secondary mt-6">
+      <a href={url("/decibel-chart/")} class="btn btn-secondary mt-6">
         Compare everyday sound levels →
       </a>
     </div>

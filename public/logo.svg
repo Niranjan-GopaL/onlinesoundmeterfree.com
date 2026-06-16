@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" width="240" height="48" role="img" aria-label="Online Sound Meter">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c89ec"/>
+      <stop offset="1" stop-color="#5e6ad2"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="8" width="32" height="32" rx="7.5" fill="url(#g)"/>
+  <path d="M9 24h3.3l2.4-6.4L18.2 32l2.8-12 2.6 7.5 1.8-4 1.6 2.9H33"
+        fill="none" stroke="#fff" stroke-width="2.3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="48" y="31" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="600" letter-spacing="-0.5">
+    <tspan fill="#0d0e14">Online</tspan><tspan fill="#6b7280">SoundMeter</tspan>
+  </text>
+</svg>

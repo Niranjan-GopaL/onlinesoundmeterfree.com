@@ -1,0 +1,49 @@
+---
+// Localized landing pages: /zh/, /es/, /de/, /ja/, /ko/, /fr/, /pt/.
+// The default locale (en) is served from src/pages/index.astro at "/", so it is
+// excluded here to avoid a duplicate /en/ route.
+import Layout from "../../layouts/Layout.astro";
+import Home from "../../components/Home.astro";
+import { SITE } from "../../consts";
+import { PREFIXED_LOCALES } from "../../i18n/config.mjs";
+import { useTranslations } from "../../i18n/utils";
+
+export function getStaticPaths() {
+  return PREFIXED_LOCALES.map((l) => ({ params: { lang: l.code } }));
+}
+
+const { lang } = Astro.params;
+const t = useTranslations(lang as any);
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: SITE.name,
+    url: `${SITE.url}/${lang}/`,
+    applicationCategory: "UtilityApplication",
+    operatingSystem: "Any (web browser)",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    description: t("home.hero.subtitle"),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [1, 2, 3, 4].map((n) => ({
+      "@type": "Question",
+      name: t(`home.faq.q${n}` as any),
+      acceptedAnswer: { "@type": "Answer", text: t(`home.faq.a${n}` as any) },
+    })),
+  },
+];
+---
+
+<Layout
+  title={t("home.hero.title")}
+  description={t("home.hero.subtitle")}
+  path="/"
+  localized
+  jsonLd={jsonLd}
+>
+  <Home lang={lang!} />
+</Layout>

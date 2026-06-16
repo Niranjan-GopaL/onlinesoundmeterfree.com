@@ -1,0 +1,228 @@
+---
+// Global keyboard shortcuts + a discoverable help modal.
+//
+// Power users should never need the mouse: standalone keys drive the meter and
+// global actions, a `g`-prefixed chord drives navigation (GitHub-style), and
+// `?` opens this cheat-sheet. Everything is wired by *clicking existing DOM
+// nodes* (loose coupling) so it keeps working even on pages without a meter.
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { url, logicalPath } from "../lib/path";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const logical = logicalPath(Astro.url.pathname);
+
+// Navigation targets, resolved server-side so they carry the deploy base AND the
+// current locale prefix. The client just reads this map for the `g` chord.
+const navTargets = {
+  h: url("/", lang),
+  d: url("/decibel-chart/"),
+  e: url("/safe-exposure-calculator/"),
+  c: url("/sound-meter-for-classroom/"),
+  b: url("/blog/"),
+  f: url("/faq/"),
+};
+
+const meterRows = [
+  { keys: ["Space"], label: t("kbd.meter.toggle") },
+  { keys: ["R"], label: t("kbd.meter.reset") },
+  { keys: ["W"], label: t("kbd.meter.weight") },
+  { keys: ["S"], label: t("kbd.meter.response") },
+  { keys: ["E"], label: t("kbd.meter.csv") },
+];
+const navRows = [
+  { keys: ["G", "H"], label: t("kbd.nav.home") },
+  { keys: ["G", "D"], label: t("kbd.nav.decibel") },
+  { keys: ["G", "E"], label: t("kbd.nav.exposure") },
+  { keys: ["G", "C"], label: t("kbd.nav.classroom") },
+  { keys: ["G", "B"], label: t("kbd.nav.blog") },
+  { keys: ["G", "F"], label: t("kbd.nav.faq") },
+];
+const generalRows = [
+  { keys: ["?"], label: t("kbd.general.help") },
+  { keys: ["D"], label: t("kbd.general.theme") },
+  { keys: ["L"], label: t("kbd.general.lang") },
+  { keys: ["Esc"], label: t("kbd.general.esc") },
+];
+
+const groups = [
+  { title: t("kbd.group.meter"), rows: meterRows, hint: null },
+  { title: t("kbd.group.nav"), rows: navRows, hint: t("kbd.nav.hint") },
+  { title: t("kbd.group.general"), rows: generalRows, hint: null },
+];
+---
+
+<div
+  id="kbd-modal"
+  hidden
+  class="fixed inset-0 z-[120] flex items-end justify-center sm:items-center"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="kbd-title"
+>
+  <div id="kbd-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <div
+    class="relative m-3 w-full max-w-2xl overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-2xl sm:m-0"
+  >
+    <div class="flex items-start justify-between gap-4 border-b border-hairline p-5">
+      <div>
+        <h2 id="kbd-title" class="text-lg font-semibold tracking-tight text-ink">
+          {t("kbd.title")}
+        </h2>
+        <p class="mt-1 text-sm text-ink-subtle">{t("kbd.subtitle")}</p>
+      </div>
+      <button
+        id="kbd-close"
+        type="button"
+        class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-hairline text-ink-muted transition-colors hover:text-ink"
+        aria-label={t("kbd.close")}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="grid gap-6 p-5 sm:grid-cols-3">
+      {
+        groups.map((group) => (
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-ink-tertiary">
+              {group.title}
+            </h3>
+            {group.hint && (
+              <p class="mt-1 text-[11px] text-ink-tertiary">{group.hint}</p>
+            )}
+            <ul class="mt-3 space-y-2.5">
+              {group.rows.map((row) => (
+                <li class="flex items-center justify-between gap-3">
+                  <span class="text-sm text-ink-muted">{row.label}</span>
+                  <span class="flex shrink-0 items-center gap-1">
+                    {row.keys.map((k) => (
+                      <kbd class="inline-grid min-w-[1.5rem] place-items-center rounded border border-hairline bg-canvas px-1.5 py-0.5 font-mono text-[11px] text-ink-subtle shadow-sm">
+                        {k}
+                      </kbd>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ navTargets }}>
+  (() => {
+    const modal = document.getElementById("kbd-modal");
+    const backdrop = document.getElementById("kbd-backdrop");
+    const closeBtn = document.getElementById("kbd-close");
+
+    const isOpen = () => modal && !modal.hasAttribute("hidden");
+    const openModal = () => modal && modal.removeAttribute("hidden");
+    const closeModal = () => modal && modal.setAttribute("hidden", "");
+    const toggleModal = () => (isOpen() ? closeModal() : openModal());
+
+    closeBtn?.addEventListener("click", closeModal);
+    backdrop?.addEventListener("click", closeModal);
+    // Any element with [data-kbd-open] (e.g. the header button) opens help.
+    document.querySelectorAll("[data-kbd-open]").forEach((el) =>
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        openModal();
+      }),
+    );
+
+    const click = (sel) => {
+      const el = document.querySelector(sel);
+      if (el) el.click();
+      return !!el;
+    };
+
+    // Cycle a group of aria-pressed buttons (weighting / response).
+    const cycle = (sel) => {
+      const btns = Array.from(document.querySelectorAll(sel));
+      if (!btns.length) return;
+      const cur = btns.findIndex(
+        (b) => b.getAttribute("aria-pressed") === "true",
+      );
+      btns[(cur + 1) % btns.length].click();
+    };
+
+    let chord = false; // true briefly after pressing `g`
+    let chordTimer = 0;
+
+    const typing = (el) =>
+      el &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.tagName === "SELECT" ||
+        el.isContentEditable);
+
+    document.addEventListener("keydown", (e) => {
+      // Esc always closes the topmost overlay.
+      if (e.key === "Escape") {
+        if (isOpen()) {
+          closeModal();
+          e.preventDefault();
+        }
+        return;
+      }
+      // Don't hijack typing or browser/OS shortcuts.
+      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // `?` opens help (Shift+/ on most layouts).
+      if (e.key === "?") {
+        toggleModal();
+        e.preventDefault();
+        return;
+      }
+      if (isOpen()) return; // while help is open, swallow the rest
+
+      // Navigation chord: `g` then a destination key.
+      if (chord) {
+        const dest = navTargets[e.key.toLowerCase()];
+        chord = false;
+        clearTimeout(chordTimer);
+        if (dest) {
+          location.assign(dest);
+          e.preventDefault();
+        }
+        return;
+      }
+      if (e.key.toLowerCase() === "g") {
+        chord = true;
+        clearTimeout(chordTimer);
+        chordTimer = window.setTimeout(() => (chord = false), 1200);
+        return;
+      }
+
+      if (e.code === "Space" || e.key === " ") {
+        if (click("#toggle-btn")) e.preventDefault();
+        return;
+      }
+      switch (e.key.toLowerCase()) {
+        case "r":
+          click("#reset-btn");
+          break;
+        case "w":
+          cycle(".weight-btn");
+          break;
+        case "s":
+          cycle(".resp-btn");
+          break;
+        case "e":
+          click("#csv-btn");
+          break;
+        case "d":
+          click("#theme-toggle");
+          break;
+        case "l":
+          click("#lang-toggle");
+          break;
+      }
+    });
+  })();
+</script>

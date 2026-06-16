@@ -1,10 +1,32 @@
 ---
 import { NAV_LINKS, SITE } from "../consts";
+import { LOCALES, DEFAULT_LOCALE } from "../i18n/config.mjs";
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { url, logicalPath } from "../lib/path";
 import ThemeToggle from "./ThemeToggle.astro";
 
-const path = Astro.url.pathname;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const logical = logicalPath(Astro.url.pathname);
+
+// A nav target resolves with the current locale only when that page is actually
+// localized; otherwise it points at the English page (which is the only one).
+const hrefFor = (link: (typeof NAV_LINKS)[number]) =>
+  url(link.href, link.localized ? lang : DEFAULT_LOCALE);
+
 const isActive = (href: string) =>
-  href === "/" ? path === "/" : path.startsWith(href);
+  href === "/" ? logical === "/" : logical.startsWith(href);
+
+const homeHref = url("/", lang);
+
+// Only the home/meter page is translated today, so the language switcher always
+// targets that language's home — never a non-existent /{lang}/deep-page/ that
+// would 404. (When deep pages get localized, switch this to url(logical, code).)
+const langOptions = LOCALES.map((l) => ({
+  ...l,
+  href: url("/", l.code),
+  current: l.code === lang,
+}));
 ---
 
 <header
@@ -12,11 +34,8 @@ const isActive = (href: string) =>
 >
   <nav class="container-page flex h-14 items-center justify-between gap-4">
     <!-- Brand -->
-    <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label={`${SITE.name} home`}>
-      <span
-        class="grid h-7 w-7 place-items-center rounded-md bg-primary text-on-primary"
-        aria-hidden="true"
-      >
+    <a href={homeHref} class="flex items-center gap-2.5 shrink-0" aria-label={`${SITE.name} home`}>
+      <span class="grid h-7 w-7 place-items-center rounded-md bg-primary text-on-primary" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 12h3l3-8 6 16 3-8h3"></path>
         </svg>
@@ -32,31 +51,90 @@ const isActive = (href: string) =>
         NAV_LINKS.map((link) => (
           <li>
             <a
-              href={link.href}
+              href={hrefFor(link)}
               aria-current={isActive(link.href) ? "page" : undefined}
               class:list={[
                 "rounded-md px-3 py-1.5 text-sm transition-colors",
-                isActive(link.href)
-                  ? "text-ink"
-                  : "text-ink-subtle hover:text-ink",
+                isActive(link.href) ? "text-ink" : "text-ink-subtle hover:text-ink",
               ]}
             >
-              {link.label}
+              {t(link.key)}
             </a>
           </li>
         ))
       }
     </ul>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5">
+      <!-- Language switcher -->
+      <div class="relative hidden sm:block">
+        <button
+          id="lang-toggle"
+          type="button"
+          class="flex h-9 items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-2.5 text-sm text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="lang-menu"
+          aria-label={t("common.language")}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path>
+          </svg>
+          <span>{LOCALES.find((l) => l.code === lang)?.label ?? "English"}</span>
+        </button>
+        <ul
+          id="lang-menu"
+          hidden
+          class="absolute right-0 mt-1 w-40 overflow-hidden rounded-lg border border-hairline bg-surface-1 py-1 shadow-xl"
+          role="menu"
+        >
+          {
+            langOptions.map((l) => (
+              <li role="none">
+                <a
+                  href={l.href}
+                  role="menuitem"
+                  hreflang={l.hreflang}
+                  aria-current={l.current ? "true" : undefined}
+                  class:list={[
+                    "block px-3 py-2 text-sm transition-colors",
+                    l.current
+                      ? "bg-surface-2 text-ink"
+                      : "text-ink-subtle hover:bg-surface-2 hover:text-ink",
+                  ]}
+                >
+                  {l.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <!-- Keyboard shortcuts -->
+      <button
+        type="button"
+        data-kbd-open
+        class="hidden h-9 w-9 place-items-center rounded-md border border-hairline bg-surface-1 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink sm:grid"
+        aria-label={t("common.keyboard")}
+        title={t("common.keyboard")}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+          <path d="M6 10h0M10 10h0M14 10h0M18 10h0M6 14h12"></path>
+        </svg>
+      </button>
+
       <ThemeToggle />
-      <a href="/" class="btn btn-primary hidden sm:inline-flex">Start measuring</a>
+      <a href={`${homeHref}#meter`} class="btn btn-primary hidden lg:inline-flex">{t("common.start")}</a>
+
       <!-- Mobile menu button -->
       <button
         id="menu-toggle"
         type="button"
         class="grid h-9 w-9 place-items-center rounded-md border border-hairline bg-surface-1 text-ink-muted md:hidden"
-        aria-label="Open menu"
+        aria-label={t("common.menu.open")}
         aria-expanded="false"
         aria-controls="mobile-menu"
       >
@@ -68,17 +146,13 @@ const isActive = (href: string) =>
   </nav>
 
   <!-- Mobile menu -->
-  <div
-    id="mobile-menu"
-    hidden
-    class="border-t border-hairline bg-canvas md:hidden"
-  >
+  <div id="mobile-menu" hidden class="border-t border-hairline bg-canvas md:hidden">
     <ul class="container-page flex flex-col py-2">
       {
         NAV_LINKS.map((link) => (
           <li>
             <a
-              href={link.href}
+              href={hrefFor(link)}
               aria-current={isActive(link.href) ? "page" : undefined}
               class:list={[
                 "block rounded-md px-3 py-2.5 text-[15px]",
@@ -87,26 +161,83 @@ const isActive = (href: string) =>
                   : "text-ink-muted hover:bg-surface-1 hover:text-ink",
               ]}
             >
-              {link.label}
+              {t(link.key)}
             </a>
           </li>
         ))
       }
+      <li class="mt-2 border-t border-hairline pt-2">
+        <button
+          type="button"
+          data-kbd-open
+          class="block w-full rounded-md px-3 py-2.5 text-left text-[15px] text-ink-muted hover:bg-surface-1 hover:text-ink"
+        >
+          {t("common.keyboard")}
+        </button>
+      </li>
     </ul>
+
+    <!-- Language list (mobile) -->
+    <div class="container-page border-t border-hairline py-2">
+      <p class="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ink-tertiary">
+        {t("common.language")}
+      </p>
+      <ul class="flex flex-wrap gap-1.5 px-3 py-1">
+        {
+          langOptions.map((l) => (
+            <li>
+              <a
+                href={l.href}
+                hreflang={l.hreflang}
+                aria-current={l.current ? "true" : undefined}
+                class:list={[
+                  "inline-block rounded-md border px-2.5 py-1 text-sm",
+                  l.current
+                    ? "border-primary bg-surface-2 text-ink"
+                    : "border-hairline text-ink-subtle hover:text-ink",
+                ]}
+              >
+                {l.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
   </div>
 </header>
 
-<script>
-  const toggle = document.getElementById("menu-toggle");
-  const menu = document.getElementById("mobile-menu");
-  toggle?.addEventListener("click", () => {
-    const open = menu?.hasAttribute("hidden");
-    if (open) {
-      menu?.removeAttribute("hidden");
-    } else {
-      menu?.setAttribute("hidden", "");
-    }
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-  });
+<script is:inline>
+  (() => {
+    const toggle = document.getElementById("menu-toggle");
+    const menu = document.getElementById("mobile-menu");
+    toggle?.addEventListener("click", () => {
+      const open = menu?.hasAttribute("hidden");
+      if (open) menu?.removeAttribute("hidden");
+      else menu?.setAttribute("hidden", "");
+      toggle.setAttribute("aria-expanded", String(open));
+    });
+
+    // Language dropdown (desktop).
+    const langToggle = document.getElementById("lang-toggle");
+    const langMenu = document.getElementById("lang-menu");
+    const setLang = (open) => {
+      if (!langMenu || !langToggle) return;
+      if (open) langMenu.removeAttribute("hidden");
+      else langMenu.setAttribute("hidden", "");
+      langToggle.setAttribute("aria-expanded", String(open));
+    };
+    langToggle?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setLang(langMenu?.hasAttribute("hidden"));
+    });
+    document.addEventListener("click", (e) => {
+      if (langMenu && !langMenu.hasAttribute("hidden")) {
+        if (!langMenu.contains(e.target) && e.target !== langToggle) setLang(false);
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") setLang(false);
+    });
+  })();
 </script>

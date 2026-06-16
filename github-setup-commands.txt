@@ -1,0 +1,54 @@
+================================================================================
+ GitHub repo setup — Online Sound Meter
+================================================================================
+Run these once (gh CLI must be authenticated: `gh auth login`).
+Repo: Niranjan-GopaL/onlinesoundmeterfree.com
+
+--------------------------------------------------------------------------------
+1. Description, homepage link, topics; disable wiki & projects
+--------------------------------------------------------------------------------
+gh repo edit Niranjan-GopaL/onlinesoundmeterfree.com \
+  --description "Free, private online sound level meter — measure noise in decibels (dBA, LAeq, A/C/Z) right in your browser. 8 languages, keyboard-first, no app." \
+  --homepage "https://niranjan-gopal.github.io/onlinesoundmeterfree.com/" \
+  --add-topic sound-meter \
+  --add-topic decibel-meter \
+  --add-topic noise-meter \
+  --add-topic spl-meter \
+  --add-topic web-audio-api \
+  --add-topic astro \
+  --add-topic tailwindcss \
+  --add-topic typescript \
+  --add-topic pwa \
+  --add-topic i18n \
+  --enable-wiki=false \
+  --enable-projects=false
+
+# When the real domain is live, switch the homepage:
+# gh repo edit Niranjan-GopaL/onlinesoundmeterfree.com --homepage "https://onlinesoundmeterfree.com"
+
+--------------------------------------------------------------------------------
+2. Turn on GitHub Pages via GitHub Actions (source = workflow)
+--------------------------------------------------------------------------------
+# In the web UI: Settings → Pages → "Build and deployment" → Source: GitHub Actions.
+# Or via API:
+gh api -X POST repos/Niranjan-GopaL/onlinesoundmeterfree.com/pages \
+  -f "build_type=workflow" 2>/dev/null \
+  || gh api -X PUT repos/Niranjan-GopaL/onlinesoundmeterfree.com/pages \
+       -f "build_type=workflow"
+
+# Then push to main (or run the workflow manually):
+gh workflow run "Deploy to GitHub Pages" \
+  --repo Niranjan-GopaL/onlinesoundmeterfree.com
+
+--------------------------------------------------------------------------------
+3. (Optional, manual) After you're done sharing the preview
+--------------------------------------------------------------------------------
+# Make the repo private so the preview disappears:
+# gh repo edit Niranjan-GopaL/onlinesoundmeterfree.com --visibility private --accept-visibility-change-consequences
+#
+# Or unpublish the Pages site entirely:
+# gh api -X DELETE repos/Niranjan-GopaL/onlinesoundmeterfree.com/pages
+#
+# The preview is already noindex + robots-Disallow, so even if you forget,
+# Google will not index it — there is no rush.
+================================================================================
