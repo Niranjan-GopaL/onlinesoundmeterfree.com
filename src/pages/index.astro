@@ -1,11 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Section from "../components/Section.astro";
-import SoundMeter from "../components/SoundMeter.astro";
-import DecibelTable from "../components/DecibelTable.astro";
-import FaqList from "../components/FaqList.astro";
-import { HEALTH_IMPACTS, FAQ_ITEMS } from "../data/reference";
+import Home from "../components/Home.astro";
 import { SITE } from "../consts";
+import { DEFAULT_LOCALE } from "../i18n/config.mjs";
+import { useTranslations } from "../i18n/utils";
+
+const lang = DEFAULT_LOCALE;
+const t = useTranslations(lang);
 
 const jsonLd = [
   {
@@ -29,192 +30,21 @@ const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQ_ITEMS.slice(0, 6).map((f) => ({
+    mainEntity: [1, 2, 3, 4].map((n) => ({
       "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
+      name: t(`home.faq.q${n}` as any),
+      acceptedAnswer: { "@type": "Answer", text: t(`home.faq.a${n}` as any) },
     })),
-  },
-];
-
-const features = [
-  {
-    title: "A / C / Z weighting",
-    body: "Switch between A-weighting for hearing-risk assessment, C for low-frequency and peak noise, or Z for the unweighted spectrum.",
-    icon: "M3 12h4l3-7 4 14 3-7h4",
-  },
-  {
-    title: "Fast & Slow response",
-    body: "Standard IEC 61672 time-weightings — Fast (125 ms) to catch transients, Slow (1 s) for steady, readable levels.",
-    icon: "M12 8v4l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
-  },
-  {
-    title: "LAeq & statistics",
-    body: "Live Min, Max, energy-average and the equivalent continuous level LAeq — the metric used in noise regulations.",
-    icon: "M3 3v18h18M7 14l4-4 3 3 5-6",
-  },
-  {
-    title: "Export CSV & PDF",
-    body: "Download the full level history as CSV for analysis, or save a clean summary report as a PDF — generated on your device.",
-    icon: "M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2",
-  },
-  {
-    title: "Completely private",
-    body: "Audio is analysed locally with the Web Audio API and discarded instantly. Nothing is recorded, stored, or uploaded.",
-    icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
-  },
-  {
-    title: "Works on any device",
-    body: "A pure static site — no install, no sign-up. Open it on a phone, tablet, or laptop and start measuring instantly.",
-    icon: "M9 17H7A5 5 0 0 1 7 7h2m6 0h2a5 5 0 0 1 0 10h-2M8 12h8",
   },
 ];
 ---
 
-<Layout jsonLd={jsonLd}>
-  <!-- Hero + tool -->
-  <Section class="!pt-10 sm:!pt-14">
-    <div class="mx-auto max-w-2xl text-center">
-      <p class="eyebrow">Free online sound level meter</p>
-      <h1
-        class="display-tight mt-4 text-balance text-4xl text-ink sm:text-6xl"
-      >
-        Measure noise in decibels, right in your browser
-      </h1>
-      <p class="mx-auto mt-5 max-w-xl text-pretty text-lg leading-relaxed text-ink-muted">
-        A fast, private sound meter with the metrics professionals expect —
-        dBA, LAeq, frequency weighting and time response. No app, no upload,
-        no sign-up.
-      </p>
-    </div>
-
-    <div class="mx-auto mt-10 max-w-4xl">
-      <SoundMeter />
-    </div>
-
-    <p class="mx-auto mt-4 max-w-4xl text-center text-xs text-ink-tertiary">
-      Tip: allow microphone access when prompted. For the most accurate
-      numbers, set a calibration offset against a known reference.
-    </p>
-  </Section>
-
-  <!-- Features -->
-  <Section
-    eyebrow="Why this meter"
-    title="More than a single number"
-    intro="Most online meters show one figure and stop. This one gives you the weightings, time response and statistics that real measurement needs — without losing the simplicity."
-    center
-  >
-    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {
-        features.map((f) => (
-          <div class="card panel-edge p-6">
-            <span class="grid h-10 w-10 place-items-center rounded-lg border border-hairline bg-canvas text-primary">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d={f.icon} />
-              </svg>
-            </span>
-            <h3 class="mt-4 text-lg font-medium tracking-tight text-ink">
-              {f.title}
-            </h3>
-            <p class="mt-2 text-sm leading-relaxed text-ink-muted">{f.body}</p>
-          </div>
-        ))
-      }
-    </div>
-  </Section>
-
-  <!-- Decibel reference -->
-  <Section
-    eyebrow="Reference"
-    title="What do the decibel numbers mean?"
-    intro="Decibels are logarithmic — every 10 dB increase is roughly a doubling of perceived loudness and a tenfold jump in sound intensity. Here is how everyday sounds compare."
-  >
-    <div class="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
-      <DecibelTable limit={11} />
-      <div class="flex flex-col justify-between gap-6">
-        <div class="card panel-edge p-6">
-          <h3 class="text-lg font-medium text-ink">The 85 dB line</h3>
-          <p class="mt-2 text-sm leading-relaxed text-ink-muted">
-            NIOSH sets the recommended exposure limit at 85 dBA over 8 hours.
-            Above it, your safe daily dose halves for every extra 3 dB — so 88
-            dBA is safe for only 4 hours, and 91 dBA for just 2.
-          </p>
-        </div>
-        <a href="/decibel-chart/" class="btn btn-secondary self-start">
-          See the full decibel chart →
-        </a>
-      </div>
-    </div>
-  </Section>
-
-  <!-- Health impacts -->
-  <Section
-    eyebrow="Why it matters"
-    title="The cost of too much noise"
-    intro="Noise is not just an annoyance. Sustained exposure has measurable effects on hearing, sleep, stress and concentration."
-    center
-  >
-    <div class="mt-12 grid gap-4 sm:grid-cols-2">
-      {
-        HEALTH_IMPACTS.map((h) => (
-          <div class="card p-6">
-            <h3 class="text-lg font-medium tracking-tight text-ink">
-              {h.title}
-            </h3>
-            <p class="mt-2 text-sm leading-relaxed text-ink-muted">{h.body}</p>
-          </div>
-        ))
-      }
-    </div>
-    <p class="mt-6 text-center text-xs text-ink-tertiary">
-      Informed by guidance from NIOSH, the WHO and the NIDCD. See our
-      <a class="text-ink-subtle underline hover:text-ink" href="/safe-exposure-calculator/"
-        >safe exposure calculator</a
-      > to estimate your daily limit.
-    </p>
-  </Section>
-
-  <!-- FAQ -->
-  <Section
-    eyebrow="FAQ"
-    title="Questions about online sound measurement"
-    center
-  >
-    <div class="mt-10">
-      <FaqList limit={6} />
-    </div>
-    <p class="mt-8 text-center text-sm text-ink-subtle">
-      More in our <a class="text-primary hover:underline" href="/faq/">full FAQ</a>.
-    </p>
-  </Section>
-
-  <!-- CTA -->
-  <Section>
-    <div
-      class="card panel-edge mx-auto flex max-w-4xl flex-col items-center gap-4 p-10 text-center sm:p-14"
-    >
-      <h2 class="display-tight text-3xl text-ink sm:text-4xl">
-        Ready to check your noise levels?
-      </h2>
-      <p class="max-w-lg text-base text-ink-muted">
-        Scroll back up and press start, or explore the decibel chart and
-        exposure calculator to learn what your numbers mean.
-      </p>
-      <div class="mt-2 flex flex-wrap justify-center gap-3">
-        <a href="#meter" class="btn btn-primary">Start measuring</a>
-        <a href="/decibel-chart/" class="btn btn-secondary">Decibel chart</a>
-      </div>
-    </div>
-  </Section>
+<Layout
+  title={t("home.hero.title")}
+  description={t("home.hero.subtitle")}
+  path="/"
+  localized
+  jsonLd={jsonLd}
+>
+  <Home lang={lang} />
 </Layout>

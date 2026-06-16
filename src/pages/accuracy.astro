@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 
 const title = "Accuracy & Calibration of Online Sound Meters";
@@ -62,6 +63,6 @@ const description =
       </li>
     </ol>
 
-    <a href="/" class="btn btn-primary mt-10">Open the meter →</a>
+    <a href={url("/")} class="btn btn-primary mt-10">Open the meter →</a>
   </Section>
 </Layout>

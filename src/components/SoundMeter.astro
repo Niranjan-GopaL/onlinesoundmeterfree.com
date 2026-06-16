@@ -1,12 +1,58 @@
 ---
 // The live sound-level meter. Self-contained: markup + client script (engine
 // imported from ../scripts/meter-engine). Runs entirely in the browser.
+//
+// Localization: static markup is rendered with t(); the dynamic readouts the
+// client script produces (status, zones, errors, screen-reader summary, the
+// printable report) are passed in via a JSON `data-strings` attribute so the
+// module script stays an ESM import while still being fully translated.
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const strings = {
+  idle: t("meter.idle"),
+  measuring: t("meter.measuring"),
+  unavailable: t("meter.unavailable"),
+  start: t("common.start"),
+  stop: t("meter.stop"),
+  fast: t("meter.fast"),
+  slow: t("meter.slow"),
+  errUnsupported: t("meter.errUnsupported"),
+  errDenied: t("meter.errDenied"),
+  srSummary: t("meter.srSummary"),
+  spectrumHint: t("meter.spectrumHint"),
+  zones: {
+    quiet: t("zone.quiet"),
+    moderate: t("zone.moderate"),
+    elevated: t("zone.elevated"),
+    loud: t("zone.loud"),
+    danger: t("zone.danger"),
+  },
+  report: {
+    title: t("meter.report.title"),
+    average: t("meter.report.average"),
+    metric: t("meter.report.metric"),
+    value: t("meter.report.value"),
+    min: t("meter.min"),
+    max: t("meter.max"),
+    avg: t("meter.avg"),
+    leq: t("meter.leq"),
+    response: t("kbd.meter.response"),
+    calibrate: t("meter.calibrate"),
+    fast: t("meter.fast"),
+    slow: t("meter.slow"),
+    note: t("meter.report.note"),
+  },
+};
 ---
 
 <section
   id="meter"
   class="card panel-edge overflow-hidden"
-  aria-label="Live sound level meter"
+  aria-label={t("meter.aria")}
+  data-strings={JSON.stringify(strings)}
 >
   <!-- Control bar -->
   <div
@@ -18,7 +64,7 @@
         class="h-2 w-2 rounded-full bg-ink-tertiary"
         aria-hidden="true"></span>
       <span id="status-text" class="text-sm font-medium text-ink-muted"
-        >Microphone idle</span
+        >{t("meter.idle")}</span
       >
     </div>
 
@@ -27,9 +73,9 @@
       <div
         class="flex items-center rounded-md border border-hairline bg-canvas p-0.5"
         role="group"
-        aria-label="Frequency weighting"
+        aria-label={t("meter.weight")}
       >
-        <span class="px-2 text-xs text-ink-tertiary">Weight</span>
+        <span class="px-2 text-xs text-ink-tertiary">{t("meter.weight")}</span>
         {
           ["A", "C", "Z"].map((w, i) => (
             <button
@@ -48,12 +94,12 @@
       <div
         class="flex items-center rounded-md border border-hairline bg-canvas p-0.5"
         role="group"
-        aria-label="Time response"
+        aria-label={t("meter.fast") + " / " + t("meter.slow")}
       >
         {
           [
-            ["fast", "Fast"],
-            ["slow", "Slow"],
+            ["fast", t("meter.fast")],
+            ["slow", t("meter.slow")],
           ].map(([val, label], i) => (
             <button
               type="button"
@@ -86,13 +132,13 @@
         </div>
         <div class="mt-1 text-sm text-ink-subtle">
           dB<span id="weight-label" class="text-ink-tertiary">A</span> ·
-          <span id="resp-label">Fast</span>
+          <span id="resp-label">{t("meter.fast")}</span>
         </div>
         <div
           id="zone-label"
           class="mt-3 rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-medium text-ink-muted"
         >
-          Idle
+          {t("meter.idleZone")}
         </div>
       </div>
     </div>
@@ -102,10 +148,10 @@
       <div class="grid grid-cols-2 gap-2.5">
         {
           [
-            ["stat-min", "Min"],
-            ["stat-max", "Max"],
-            ["stat-avg", "Avg"],
-            ["stat-leq", "LAeq"],
+            ["stat-min", t("meter.min")],
+            ["stat-max", t("meter.max")],
+            ["stat-avg", t("meter.avg")],
+            ["stat-leq", t("meter.leq")],
           ].map(([id, label]) => (
             <div class="rounded-lg border border-hairline bg-canvas px-3 py-2.5">
               <div class="text-[11px] uppercase tracking-wider text-ink-tertiary">
@@ -126,7 +172,7 @@
         <div
           class="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wider text-ink-tertiary"
         >
-          <span>Frequency spectrum</span>
+          <span>{t("meter.spectrum")}</span>
           <span class="font-mono">FFT 4096</span>
         </div>
         <canvas id="spectrum" class="h-24 w-full"></canvas>
@@ -139,10 +185,10 @@
     <div
       class="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wider text-ink-tertiary"
     >
-      <span>Level history · last 60 s</span>
+      <span>{t("meter.history")}</span>
       <span class="flex items-center gap-1.5">
         <span class="h-px w-4 bg-zone-loud" aria-hidden="true"></span>
-        NIOSH 85 dB limit
+        {t("meter.nioshLimit")}
       </span>
     </div>
     <canvas id="history" class="h-40 w-full"></canvas>
@@ -164,16 +210,16 @@
         >
           <path d="M8 5v14l11-7z"></path>
         </svg>
-        <span id="toggle-label">Start measuring</span>
+        <span id="toggle-label">{t("common.start")}</span>
       </button>
       <button id="reset-btn" type="button" class="btn btn-secondary" disabled>
-        Reset
+        {t("meter.reset")}
       </button>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
       <label class="flex items-center gap-2 text-xs text-ink-subtle">
-        Calibrate
+        {t("meter.calibrate")}
         <input
           id="calibration"
           type="number"
@@ -187,18 +233,16 @@
         <span class="font-mono">dB</span>
       </label>
       <button id="csv-btn" type="button" class="btn btn-ghost" disabled>
-        Export CSV
+        {t("meter.exportCsv")}
       </button>
       <button id="report-btn" type="button" class="btn btn-ghost" disabled>
-        Save PDF
+        {t("meter.savePdf")}
       </button>
     </div>
   </div>
 
   <p id="meter-note" class="px-4 pb-4 text-xs leading-relaxed text-ink-tertiary">
-    Audio is processed locally and never leaves your device. A phone or laptop
-    mic is not a calibrated meter — readings are reference estimates. Use the
-    calibration offset to align against a known reference.
+    {t("meter.note")}
   </p>
 
   <!-- Screen-reader live summary (throttled in JS to avoid spam). -->
@@ -222,9 +266,18 @@
     document.getElementById(id) as T | null;
 
   const meter = $("meter");
-  if (meter) initMeter();
+  if (meter) initMeter(meter);
 
-  function initMeter() {
+  function initMeter(meter: HTMLElement) {
+    // Localized strings injected by the server (see component frontmatter).
+    const S = JSON.parse(meter.dataset.strings || "{}") as {
+      idle: string; measuring: string; unavailable: string;
+      start: string; stop: string; fast: string; slow: string;
+      errUnsupported: string; errDenied: string; srSummary: string;
+      spectrumHint: string;
+      zones: Record<string, string>;
+      report: Record<string, string>;
+    };
     const gauge = $<HTMLCanvasElement>("gauge")!;
     const spectrum = $<HTMLCanvasElement>("spectrum")!;
     const history = $<HTMLCanvasElement>("history")!;
@@ -405,7 +458,7 @@
         ctx.fillStyle = pal.inkTertiary;
         ctx.font = "11px system-ui";
         ctx.textAlign = "center";
-        ctx.fillText("Start measuring to see live spectrum", w / 2, h / 2);
+        ctx.fillText(S.spectrumHint, w / 2, h / 2);
         return;
       }
       const bins = byteBuf.length;
@@ -564,7 +617,7 @@
     function updateReadout() {
       dbValue.textContent = fmt(displayLevel);
       const z = zoneFor(displayLevel);
-      zoneLabel.textContent = z.label;
+      zoneLabel.textContent = S.zones[z.id] ?? z.label;
       zoneLabel.style.color = zoneColor(z.id);
       zoneLabel.style.borderColor = zoneColor(z.id) + "66";
       $("stat-min")!.textContent = fmt(stats.min);
@@ -578,7 +631,12 @@
     function startSr() {
       srTimer = window.setInterval(() => {
         if (Number.isFinite(displayLevel)) {
-          srSummary.textContent = `${fmt(displayLevel)} decibels, ${zoneFor(displayLevel).label}. Average ${fmt(stats.avg)}, max ${fmt(stats.max)}.`;
+          const z = zoneFor(displayLevel);
+          srSummary.textContent = S.srSummary
+            .replace("{db}", fmt(displayLevel))
+            .replace("{zone}", S.zones[z.id] ?? z.label)
+            .replace("{avg}", fmt(stats.avg))
+            .replace("{max}", fmt(stats.max));
         }
       }, 3000);
     }
@@ -586,7 +644,7 @@
     // ---- Start / stop ----
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        fail("This browser does not support microphone access.");
+        fail(S.errUnsupported);
         return;
       }
       try {
@@ -598,9 +656,7 @@
           },
         });
       } catch {
-        fail(
-          "Microphone permission denied. Allow access and reload to measure. Audio stays on your device.",
-        );
+        fail(S.errDenied);
         return;
       }
       audioCtx = new (window.AudioContext ||
@@ -640,13 +696,13 @@
     }
 
     function setRunningUI(on: boolean) {
-      toggleLabel.textContent = on ? "Stop" : "Start measuring";
+      toggleLabel.textContent = on ? S.stop : S.start;
       toggleIcon.querySelector("path")?.setAttribute("d", on ? STOP : PLAY);
       statusDot.classList.toggle("bg-success", on);
       statusDot.classList.toggle("bg-ink-tertiary", !on);
       if (on) statusDot.classList.add("animate-pulse");
       else statusDot.classList.remove("animate-pulse");
-      statusText.textContent = on ? "Measuring…" : "Microphone idle";
+      statusText.textContent = on ? S.measuring : S.idle;
       resetBtn.disabled = !on;
       csvBtn.disabled = !on;
       reportBtn.disabled = !on;
@@ -655,7 +711,7 @@
     function fail(msg: string) {
       note.textContent = msg;
       note.classList.add("text-zone-loud");
-      statusText.textContent = "Unavailable";
+      statusText.textContent = S.unavailable;
     }
 
     // ---- Controls ----
@@ -684,7 +740,7 @@
         document
           .querySelectorAll(".resp-btn")
           .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-        respLabel.textContent = response === "fast" ? "Fast" : "Slow";
+        respLabel.textContent = response === "fast" ? S.fast : S.slow;
       }),
     );
     calInput.addEventListener("input", () => {
@@ -713,8 +769,9 @@
       const w = window.open("", "_blank", "width=720,height=900");
       if (!w) return;
       const now = new Date();
+      const R = S.report;
       w.document.write(`<!doctype html><html><head><meta charset="utf-8">
-        <title>Sound Level Report</title>
+        <title>${R.title}</title>
         <style>
           body{font:14px/1.6 system-ui,sans-serif;color:#111;max-width:640px;margin:40px auto;padding:0 24px}
           h1{font-size:22px;margin:0 0 4px} .muted{color:#666}
@@ -723,21 +780,19 @@
           .big{font-size:34px;font-weight:600}
           .note{font-size:12px;color:#777;margin-top:24px}
         </style></head><body>
-        <h1>Sound Level Report</h1>
+        <h1>${R.title}</h1>
         <div class="muted">${now.toLocaleString()}</div>
-        <p class="big">${fmt(stats.avg)} dB${weighting} <span class="muted" style="font-size:14px">average</span></p>
+        <p class="big">${fmt(stats.avg)} dB${weighting} <span class="muted" style="font-size:14px">${R.average}</span></p>
         <table>
-          <tr><th>Metric</th><th>Value</th></tr>
-          <tr><td>Minimum</td><td>${fmt(stats.min)} dB${weighting}</td></tr>
-          <tr><td>Maximum</td><td>${fmt(stats.max)} dB${weighting}</td></tr>
-          <tr><td>Average</td><td>${fmt(stats.avg)} dB${weighting}</td></tr>
-          <tr><td>LAeq (equivalent continuous, A-weighted)</td><td>${fmt(stats.laeq)} dBA</td></tr>
-          <tr><td>Time response</td><td>${response === "fast" ? "Fast (125 ms)" : "Slow (1 s)"}</td></tr>
-          <tr><td>Calibration offset</td><td>${calibration} dB</td></tr>
+          <tr><th>${R.metric}</th><th>${R.value}</th></tr>
+          <tr><td>${R.min}</td><td>${fmt(stats.min)} dB${weighting}</td></tr>
+          <tr><td>${R.max}</td><td>${fmt(stats.max)} dB${weighting}</td></tr>
+          <tr><td>${R.avg}</td><td>${fmt(stats.avg)} dB${weighting}</td></tr>
+          <tr><td>${R.leq}</td><td>${fmt(stats.laeq)} dBA</td></tr>
+          <tr><td>${R.response}</td><td>${response === "fast" ? R.fast + " (125 ms)" : R.slow + " (1 s)"}</td></tr>
+          <tr><td>${R.calibrate}</td><td>${calibration} dB</td></tr>
         </table>
-        <p class="note">Generated by Online Sound Meter. Readings are uncalibrated
-        reference estimates from a consumer microphone, not a substitute for a
-        Type 1/2 sound level meter. Sources: NIOSH, WHO, NIDCD.</p>
+        <p class="note">${R.note}</p>
         <script>window.onload=function(){window.print()}<\/script>
         </body></html>`);
       w.document.close();

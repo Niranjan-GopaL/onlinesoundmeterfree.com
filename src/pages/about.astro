@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 
 const title = "About Online Sound Meter";
@@ -35,10 +36,10 @@ const description =
         frequency weightings and exponential time-weightings, and derive the
         equivalent continuous level (LAeq) from sound energy. The full pipeline
         is described on our
-        <a class="text-primary hover:underline" href="/how-it-works/"
+        <a class="text-primary hover:underline" href={url("/how-it-works/")}
           >how it works</a
         > page, and its limits on the
-        <a class="text-primary hover:underline" href="/accuracy/">accuracy</a> page.
+        <a class="text-primary hover:underline" href={url("/accuracy/")}>accuracy</a> page.
       </p>
     </div>
 

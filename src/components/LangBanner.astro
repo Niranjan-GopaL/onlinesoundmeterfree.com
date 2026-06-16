@@ -1,0 +1,110 @@
+---
+// Friendly "this page is also in your language" banner.
+//
+// Pure client-side + zero layout cost when not needed: we render one hidden
+// strip, hand the client a map of {locale → translated copy + localized URL}
+// for the *current* logical page, and let it decide based on navigator.language
+// whether to reveal it. Dismissals are remembered so we never nag.
+import { LOCALES, getLocale } from "../i18n/config.mjs";
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { url, logicalPath } from "../lib/path";
+
+const lang = getLangFromUrl(Astro.url);
+const logical = logicalPath(Astro.url.pathname);
+
+// Only the home/meter page is fully localized today, so only suggest a switch
+// there — elsewhere a translated chrome on English content would be misleading.
+const localized = logical === "/";
+
+// Copy is written in the *suggested* language (a Korean visitor reads Korean),
+// so each candidate carries its own translated strings + localized href.
+const candidates = LOCALES.map((l) => {
+  const tl = useTranslations(l.code as any);
+  return {
+    code: l.code,
+    href: url(logical, l.code),
+    text: tl("banner.text"),
+    cta: tl("banner.cta", { lang: l.label }),
+    dismiss: tl("banner.dismiss"),
+  };
+});
+---
+
+{
+  localized && (
+    <div
+      id="lang-banner"
+      hidden
+      class="border-b border-hairline bg-surface-1"
+      data-current={lang}
+      data-candidates={JSON.stringify(candidates)}
+    >
+      <div class="container-page flex items-center justify-between gap-3 py-2 text-sm">
+        <p class="flex items-center gap-2 text-ink-muted">
+          <svg class="shrink-0 text-ink-tertiary" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+          </svg>
+          <span id="lang-banner-text"></span>
+        </p>
+        <div class="flex shrink-0 items-center gap-2">
+          <a id="lang-banner-cta" href="#" class="font-medium text-primary hover:underline"></a>
+          <button
+            id="lang-banner-dismiss"
+            type="button"
+            class="grid h-7 w-7 place-items-center rounded-md text-ink-tertiary transition-colors hover:text-ink"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+<script is:inline>
+  (() => {
+    const el = document.getElementById("lang-banner");
+    if (!el) return;
+    const current = el.dataset.current;
+    let candidates;
+    try {
+      candidates = JSON.parse(el.dataset.candidates || "[]");
+    } catch {
+      return;
+    }
+    const byCode = Object.fromEntries(candidates.map((c) => [c.code, c]));
+
+    // First navigator language whose base tag we actually ship.
+    const prefs = navigator.languages || [navigator.language || "en"];
+    let match = null;
+    for (const p of prefs) {
+      const base = p.toLowerCase().split("-")[0];
+      const code = base === "zh" ? "zh" : base; // zh-* all map to Simplified here
+      if (byCode[code]) {
+        match = code;
+        break;
+      }
+    }
+
+    if (!match || match === current) return;
+    if (localStorage.getItem("lang-banner-dismissed") === "1") return;
+
+    const c = byCode[match];
+    document.getElementById("lang-banner-text").textContent = c.text;
+    const cta = document.getElementById("lang-banner-cta");
+    cta.textContent = c.cta;
+    cta.href = c.href;
+    document
+      .getElementById("lang-banner-dismiss")
+      .addEventListener("click", () => {
+        el.setAttribute("hidden", "");
+        try {
+          localStorage.setItem("lang-banner-dismissed", "1");
+        } catch {}
+      });
+    el.removeAttribute("hidden");
+  })();
+</script>

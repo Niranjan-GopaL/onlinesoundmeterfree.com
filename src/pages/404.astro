@@ -1,0 +1,58 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
+
+const links = [
+  { href: url("/"), label: "Sound meter" },
+  { href: url("/decibel-chart/"), label: "Decibel chart" },
+  { href: url("/safe-exposure-calculator/"), label: "Safe-exposure calculator" },
+  { href: url("/faq/"), label: "FAQ" },
+];
+---
+
+<Layout
+  title="Page not found"
+  description="The page you were looking for doesn’t exist. Head back to the sound meter."
+  path="/404"
+  noindex
+>
+  <section class="container-page flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+    <p class="font-mono text-sm tracking-widest text-ink-tertiary">404</p>
+    <h1 class="display-tight mt-3 text-4xl text-ink sm:text-5xl">
+      This page went quiet
+    </h1>
+    <p class="mx-auto mt-4 max-w-md text-pretty text-base leading-relaxed text-ink-muted">
+      We couldn’t find what you were looking for. The link may be broken or the
+      page may have moved.
+    </p>
+
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a href={url("/")} class="btn btn-primary">Open the sound meter</a>
+      <a href={url("/blog/")} class="btn btn-secondary">Read the blog</a>
+    </div>
+
+    <nav class="mt-12 w-full max-w-md" aria-label="Helpful links">
+      <p class="text-xs font-semibold uppercase tracking-wider text-ink-tertiary">
+        Or try one of these
+      </p>
+      <ul class="mt-3 grid grid-cols-2 gap-2">
+        {
+          links.map((l) => (
+            <li>
+              <a
+                href={l.href}
+                class="block rounded-lg border border-hairline bg-surface-1 px-4 py-3 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+              >
+                {l.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="mt-6 text-xs text-ink-tertiary">
+        Tip: press <kbd class="rounded border border-hairline bg-canvas px-1.5 py-0.5 font-mono">?</kbd>
+        anywhere for keyboard shortcuts.
+      </p>
+    </nav>
+  </section>
+</Layout>

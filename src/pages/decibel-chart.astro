@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { url } from "../lib/path";
 import Section from "../components/Section.astro";
 import DecibelTable from "../components/DecibelTable.astro";
 import { SITE } from "../consts";
@@ -72,7 +73,7 @@ const jsonLd = {
         actual energy — and why the safe exposure time falls so quickly as
         levels rise.
       </p>
-      <a href="/safe-exposure-calculator/" class="btn btn-secondary mt-6">
+      <a href={url("/safe-exposure-calculator/")} class="btn btn-secondary mt-6">
         Calculate your safe exposure time →
       </a>
     </div>
